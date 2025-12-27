@@ -34,10 +34,11 @@ let lastEmissionTime = 0
 // Create engine when config changes
 const createEngine = () => {
   try {
+    console.log(r0.value, r2.value);
     engine.value = new BlackHoleEngine({
-      M: mass.value,
-      r0: r0.value,
-      r2: r2.value,
+      rs: 2 * mass.value,
+      n0: r2.value,
+      n2: r0.value,
     })
     // Reset time and photons
     currentTime.value = 0
@@ -61,7 +62,7 @@ const currentState = computed(() => {
 
 // Max proper time
 const maxTime = computed(() => {
-  return engine.value?.getMaxProperTime() ?? 0
+  return engine.value?.tauMax ?? 0
 })
 
 // Check if simulation has ended

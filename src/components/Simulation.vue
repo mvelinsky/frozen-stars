@@ -29,9 +29,10 @@ const yForRadius = (r: number, rs: number, maxR: number): number => {
 const svgContent = computed(() => {
   if (!props.engine || !props.state) return ''
 
-  const rs = props.engine.getRs()
-  const r0 = props.engine.getR0()
-  const r2 = props.engine.getR2()
+  console.log(props.engine.cfg);
+  const rs = props.engine.cfg.rs
+  const r0 = props.engine.cfg.n0
+  const r2 = props.engine.cfg.n2
 
   // Use max of r2 and r0 as the top of visualization
   const maxR = Math.max(r2, r0) * 1.2
