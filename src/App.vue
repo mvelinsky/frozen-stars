@@ -37,8 +37,8 @@ const createEngine = () => {
     console.log(r0.value, r2.value);
     engine.value = new BlackHoleEngine({
       rs: 2 * mass.value,
-      n0: r2.value,
-      n2: r0.value,
+      nObserver: r0.value,
+      nFaller: r2.value,
     })
     // Reset time and photons
     currentTime.value = 0

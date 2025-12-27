@@ -1,29 +1,37 @@
-import { nToRadius, fallingN, maxProperTime, coordinateTime, stationaryProperTime, photonN } from './physics';
+// BlackHoleEngine.ts
+
+import { nToRadius, fallingN, maxProperTime, coordinateTime, stationaryProperTime, photonN } from "./physics";
 
 export interface Config {
-  rs: number;   // Schwarzschild radius
-  n0: number;   // Object 1 initial position
-  n2: number;   // Object 2 position (n2 < n0, further out)
+  rs: number;        // Schwarzschild radius
+  nFaller: number;   // Object 1 (infaller) initial position
+  nObserver: number; // Object 2 (stationary observer) position
 }
 
 export class BlackHoleEngine {
   constructor(public cfg: Config) {
-    if (cfg.n2 >= cfg.n0) throw new Error('Object 2 must be further out (n2 < n0)');
+    if (cfg.nObserver >= cfg.nFaller)
+      throw new Error("Observer must be further out (lower n)");
   }
 
-  get rs() { return this.cfg.rs; }
-  get tauMax() { return maxProperTime(this.cfg.n0, this.cfg.rs); }
+  get rs() {
+    return this.cfg.rs;
+  }
+
+  get tauMax() {
+    return maxProperTime(this.cfg.nFaller, this.cfg.rs);
+  }
 
   getState(tau: number) {
-    const n1 = fallingN(tau, this.cfg.n0, this.tauMax);
-    const t = coordinateTime(n1, this.cfg.n0, this.cfg.rs);
-    const tau2 = stationaryProperTime(t, this.cfg.n2, this.cfg.rs);
+    const nFaller = fallingN(tau, this.cfg.nFaller, this.tauMax);
+    const t = coordinateTime(nFaller, this.cfg.nFaller, this.cfg.rs);
+    const tauObserver = stationaryProperTime(t, this.cfg.nObserver, this.cfg.rs);
 
     return {
-      object1: { n: n1, r: nToRadius(n1, this.cfg.rs), tau },
-      object2: { n: this.cfg.n2, r: nToRadius(this.cfg.n2, this.cfg.rs), tau: tau2 },
+      object1: {n: nFaller, r: nToRadius(nFaller, this.cfg.rs), tau},
+      object2: {n: this.cfg.nObserver, r: nToRadius(this.cfg.nObserver, this.cfg.rs), tau: tauObserver},
       coordinateTime: t,
-      atHorizon: !isFinite(n1),
+      atHorizon: !isFinite(nFaller),
     };
   }
 
@@ -34,6 +42,6 @@ export class BlackHoleEngine {
   }
 
   photonArrived(tauEmit: number, tauCurrent: number): boolean {
-    return this.getPhotonN(tauEmit, tauCurrent) <= this.cfg.n2;
+    return this.getPhotonN(tauEmit, tauCurrent) <= this.cfg.nObserver;
   }
 }
