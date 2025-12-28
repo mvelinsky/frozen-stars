@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, watch } from 'vue'
 import { timeScales } from '../engine/timescales'
 
 const props = defineProps<{
@@ -22,34 +22,89 @@ const stopOneTickBefore = ref<boolean>(false)
 const TARGET_FPS = 30
 const FRAME_INTERVAL = 1000 / TARGET_FPS
 
-type SpeedOption = { value: string; label: string; getTauDelta: () => number }
+// Logarithmic time coordinate (like the spatial n coordinate)
+// Maps [0, tauMax) to [0, infinity)
+// tau = tauMax * (1 - 10^(-n_tau))
+const currentNTau = ref<number>(0)
+
+// Convert linear tau to logarithmic n_tau
+function tauToNTau(tau: number, tauMax: number): number {
+  if (tau >= tauMax) return Infinity
+  if (tau <= 0) return 0
+  const fraction = 1 - tau / tauMax
+  if (fraction <= 0) return Infinity
+  return -Math.log10(fraction)
+}
+
+// Convert logarithmic n_tau to linear tau
+function nTauToTau(n: number, tauMax: number): number {
+  if (n === Infinity) return tauMax
+  const cappedN = Math.max(0, n)
+  const fraction = Math.pow(10, -cappedN)
+  return tauMax * (1 - fraction)
+}
+
+// Initialize n_tau from currentTau
+watch(() => props.currentTau, (newTau) => {
+  // Only update from prop if not running (during animation we control it)
+  if (!isRunning.value) {
+    currentNTau.value = tauToNTau(newTau, props.tauMax)
+  }
+}, { immediate: true })
+
+type SpeedOption = { value: string; label: string; getNTauDelta: () => number }
 
 const speedOptions: SpeedOption[] = [
-  { value: '1e-25s', label: '10⁻²⁵s/tick', getTauDelta: () => 1e-25 / props.tauToSeconds(1) },
-  { value: '1ys', label: '1ys/tick (yoctosecond, 10⁻²⁴s)', getTauDelta: () => 1e-24 / props.tauToSeconds(1) },
-  { value: '10ys', label: '10ys/tick (10 yoctoseconds, 10⁻²³s)', getTauDelta: () => 1e-23 / props.tauToSeconds(1) },
-  { value: '100ys', label: '100ys/tick (100 yoctoseconds, 10⁻²²s)', getTauDelta: () => 1e-22 / props.tauToSeconds(1) },
-  { value: '1zs', label: '1zs/tick (zeptosecond, 10⁻²¹s)', getTauDelta: () => 1e-21 / props.tauToSeconds(1) },
-  { value: '10zs', label: '10zs/tick (10 zeptoseconds, 10⁻²⁰s)', getTauDelta: () => 1e-20 / props.tauToSeconds(1) },
-  { value: '100zs', label: '100zs/tick (100 zeptoseconds, 10⁻¹⁹s)', getTauDelta: () => 1e-19 / props.tauToSeconds(1) },
-  { value: '1as', label: '1as/tick (attosecond, 10⁻¹⁸s)', getTauDelta: () => 1e-18 / props.tauToSeconds(1) },
-  { value: '10as', label: '10as/tick (10 attoseconds, 10⁻¹⁷s)', getTauDelta: () => 1e-17 / props.tauToSeconds(1) },
-  { value: '100as', label: '100as/tick (100 attoseconds, 10⁻¹⁶s)', getTauDelta: () => 1e-16 / props.tauToSeconds(1) },
-  { value: '1fs', label: '1fs/tick (femtosecond, 10⁻¹⁵s)', getTauDelta: () => 1e-15 / props.tauToSeconds(1) },
-  { value: '1ps', label: '1ps/tick (picosecond, 10⁻¹²s)', getTauDelta: () => 1e-12 / props.tauToSeconds(1) },
-  { value: '1ns', label: '1ns/tick (nanosecond, 10⁻⁹s)', getTauDelta: () => 1e-9 / props.tauToSeconds(1) },
-  { value: '1us', label: '1μs/tick (microsecond, 10⁻⁶s)', getTauDelta: () => 1e-6 / props.tauToSeconds(1) },
-  { value: '1ms', label: '1ms/tick (millisecond, 10⁻³s)', getTauDelta: () => 1e-3 / props.tauToSeconds(1) },
-  { value: '1s', label: '1s/tick (second, 10⁰s)', getTauDelta: () => 1 / props.tauToSeconds(1) },
-  { value: '1m', label: '1m/tick (minute, 60s)', getTauDelta: () => 60 / props.tauToSeconds(1) },
-  { value: '1h', label: '1h/tick (hour, 3600s)', getTauDelta: () => 3600 / props.tauToSeconds(1) },
-  { value: '1d', label: '1d/tick (day, 86400s)', getTauDelta: () => 86400 / props.tauToSeconds(1) },
-  { value: '1min', label: 'Complete in 1min', getTauDelta: () => props.tauMax / (60 * TARGET_FPS) },
+  { value: '1e-25s', label: '10⁻²⁵s/tick', getNTauDelta: () => computeNTauDelta(1e-25) },
+  { value: '1ys', label: '1ys/tick (yoctosecond, 10⁻²⁴s)', getNTauDelta: () => computeNTauDelta(1e-24) },
+  { value: '10ys', label: '10ys/tick (10 yoctoseconds, 10⁻²³s)', getNTauDelta: () => computeNTauDelta(1e-23) },
+  { value: '100ys', label: '100ys/tick (100 yoctoseconds, 10⁻²²s)', getNTauDelta: () => computeNTauDelta(1e-22) },
+  { value: '1zs', label: '1zs/tick (zeptosecond, 10⁻²¹s)', getNTauDelta: () => computeNTauDelta(1e-21) },
+  { value: '10zs', label: '10zs/tick (10 zeptoseconds, 10⁻²⁰s)', getNTauDelta: () => computeNTauDelta(1e-20) },
+  { value: '100zs', label: '100zs/tick (100 zeptoseconds, 10⁻¹⁹s)', getNTauDelta: () => computeNTauDelta(1e-19) },
+  { value: '1as', label: '1as/tick (attosecond, 10⁻¹⁸s)', getNTauDelta: () => computeNTauDelta(1e-18) },
+  { value: '10as', label: '10as/tick (10 attoseconds, 10⁻¹⁷s)', getNTauDelta: () => computeNTauDelta(1e-17) },
+  { value: '100as', label: '100as/tick (100 attoseconds, 10⁻¹⁶s)', getNTauDelta: () => computeNTauDelta(1e-16) },
+  { value: '1fs', label: '1fs/tick (femtosecond, 10⁻¹⁵s)', getNTauDelta: () => computeNTauDelta(1e-15) },
+  { value: '1ps', label: '1ps/tick (picosecond, 10⁻¹²s)', getNTauDelta: () => computeNTauDelta(1e-12) },
+  { value: '1ns', label: '1ns/tick (nanosecond, 10⁻⁹s)', getNTauDelta: () => computeNTauDelta(1e-9) },
+  { value: '1us', label: '1μs/tick (microsecond, 10⁻⁶s)', getNTauDelta: () => computeNTauDelta(1e-6) },
+  { value: '1ms', label: '1ms/tick (millisecond, 10⁻³s)', getNTauDelta: () => computeNTauDelta(1e-3) },
+  { value: '1s', label: '1s/tick (second, 10⁰s)', getNTauDelta: () => computeNTauDelta(1) },
+  { value: '1m', label: '1m/tick (minute, 60s)', getNTauDelta: () => computeNTauDelta(60) },
+  { value: '1h', label: '1h/tick (hour, 3600s)', getNTauDelta: () => computeNTauDelta(3600) },
+  { value: '1d', label: '1d/tick (day, 86400s)', getNTauDelta: () => computeNTauDelta(86400) },
+  { value: '1min', label: 'Complete in 1min', getNTauDelta: () => {
+    const totalTicks = 60 * TARGET_FPS
+    const finalNTau = 20  // Cap at n_tau = 20 (tau = tauMax * 0.999999999999999999)
+    return finalNTau / totalTicks
+  }},
 ]
+
+// Compute the n_tau increment for a given time delta in seconds
+function computeNTauDelta(secondsDelta: number): number {
+  const tauDelta = secondsDelta / props.tauToSeconds(1)
+
+  // Convert tau delta to n_tau delta using derivative at current point
+  // tau = tauMax * (1 - 10^(-n))
+  // d(tau)/dn = tauMax * ln(10) * 10^(-n)
+  // dn = d(tau) / (d(tau)/dn) = d(tau) / (tauMax * ln(10) * 10^(-n))
+
+  if (currentNTau.value <= 0) {
+    // At start, use linear approximation
+    const derivative = props.tauMax * Math.LN10
+    return tauDelta / derivative
+  }
+
+  const tenToMinusN = Math.pow(10, -currentNTau.value)
+  const derivative = props.tauMax * Math.LN10 * tenToMinusN
+  return tauDelta / derivative
+}
 
 const progress = computed(() => {
   if (props.tauMax === 0) return 0
-  return (props.currentTau / props.tauMax) * 100
+  const currentTauFromN = nTauToTau(currentNTau.value, props.tauMax)
+  return (currentTauFromN / props.tauMax) * 100
 })
 
 function formatTime(seconds: number): string {
@@ -69,7 +124,8 @@ function formatTime(seconds: number): string {
   return `${years.toExponential(2)}y`
 }
 
-const currentTimeFormatted = computed(() => formatTime(props.tauToSeconds(props.currentTau)))
+const currentTauComputed = computed(() => nTauToTau(currentNTau.value, props.tauMax))
+const currentTimeFormatted = computed(() => formatTime(props.tauToSeconds(currentTauComputed.value)))
 const maxTimeFormatted = computed(() => formatTime(props.tauToSeconds(props.tauMax)))
 
 // Get the time scale reference for the selected speed
@@ -82,7 +138,9 @@ const speedReference = computed(() => {
   }
 
   // Get the tau delta and convert back to seconds
-  const tauDelta = option.getTauDelta()
+  const nTauDelta = option.getNTauDelta()
+  const derivativeAtCurrent = props.tauMax * Math.LN10 * Math.pow(10, -currentNTau.value)
+  const tauDelta = nTauDelta * derivativeAtCurrent
   const secondsPerTick = props.tauToSeconds(tauDelta)
 
   // Find the appropriate time scale reference
@@ -105,17 +163,21 @@ function animate(currentTime: number) {
   if (elapsed >= FRAME_INTERVAL) {
     const option = speedOptions.find(o => o.value === selectedSpeed.value)
     if (option) {
-      const tauDelta = option.getTauDelta()
+      const nTauDelta = option.getNTauDelta()
 
-      // Calculate the stopping point based on checkbox
-      const stopPoint = stopOneTickBefore.value ? props.tauMax - tauDelta : props.tauMax
-      const newTau = Math.min(props.currentTau + tauDelta, stopPoint)
-      emit('update:currentTau', newTau)
+      // Increment n_tau logarithmically
+      const newNTau = currentNTau.value + nTauDelta
 
-      if (newTau >= stopPoint) {
+      // Check if we've reached or passed the effective end (n_tau = 20 is ~tauMax)
+      if (newNTau >= 20 || !isFinite(newNTau)) {
+        emit('update:currentTau', props.tauMax)
         stop()
         return
       }
+
+      currentNTau.value = newNTau
+      const newTau = nTauToTau(newNTau, props.tauMax)
+      emit('update:currentTau', newTau)
     }
     lastTime = currentTime
   }
@@ -142,13 +204,16 @@ function stop() {
 
 function reset() {
   stop()
+  currentNTau.value = 0
   emit('update:currentTau', 0)
   emit('reset')
 }
 
 function onSliderInput(event: Event) {
   const value = Number((event.target as HTMLInputElement).value)
-  emit('update:currentTau', (value / 100) * props.tauMax)
+  const newTau = (value / 100) * props.tauMax
+  currentNTau.value = tauToNTau(newTau, props.tauMax)
+  emit('update:currentTau', newTau)
 }
 
 onUnmounted(() => {
@@ -176,7 +241,7 @@ onUnmounted(() => {
       <!-- Tau values below slider -->
       <div class="flex justify-between text-[10px] font-mono text-gray-600 pt-1">
         <span>0</span>
-        <span class="text-blue-400">{{ currentTau.toFixed(1) }}</span>
+        <span class="text-blue-400">{{ currentTauComputed.toFixed(4) }}</span>
         <span>{{ tauMax.toFixed(1) }}</span>
       </div>
       <!-- Time values (seconds/minutes/hours/days) -->
@@ -184,6 +249,12 @@ onUnmounted(() => {
         <span>0s</span>
         <span class="text-blue-300">{{ currentTimeFormatted }}</span>
         <span>{{ maxTimeFormatted }}</span>
+      </div>
+      <!-- n_tau indicator (logarithmic time coordinate) -->
+      <div class="flex justify-between text-[10px] font-mono text-gray-600">
+        <span>n_τ = 0</span>
+        <span class="text-purple-400">n_τ = {{ currentNTau.toFixed(4) }}</span>
+        <span>n_τ → 20 (∞)</span>
       </div>
     </div>
 
