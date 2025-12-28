@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { BlackHoleEngine } from '../engine/BlackHoleEngine'
 import { createUnits } from '../engine/units'
+import { timeScales } from '../engine/timescales'
 import Controls from './Controls.vue'
 import SimulationControls from './SimulationControls.vue'
 
@@ -92,6 +93,15 @@ function formatTime(tau: number): string {
   // Use scientific notation for very large values
   return `${years.toExponential(2)}y`
 }
+
+function getTimeScaleReference(tau: number): string {
+  const seconds = units.value.tauToSeconds(tau)
+  // Find the appropriate time scale
+  const scale = timeScales.find(s => seconds < s.seconds * 10)
+  return scale?.reference || ''
+}
+
+const observerTimeReference = computed(() => getTimeScaleReference(currentState.value.object2.tau))
 </script>
 
 <template>
@@ -140,7 +150,7 @@ function formatTime(tau: number): string {
             <div class="flex flex-col gap-1">
               <span class="text-[10px] text-gray-600">Observer</span>
               <span class="font-mono text-xs text-blue-400">{{ formatTime(currentState.object2.tau) }}</span>
-              <span class="text-xs">{{ currentState.object2.tau }}</span>
+              <span v-if="observerTimeReference" class="text-[10px] text-gray-500">{{ observerTimeReference }}</span>
             </div>
           </div>
         </div>

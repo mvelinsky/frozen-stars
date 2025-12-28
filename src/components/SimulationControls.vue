@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
+import { timeScales } from '../engine/timescales'
 
 const props = defineProps<{
   tauMax: number
@@ -65,6 +66,24 @@ function formatTime(seconds: number): string {
 
 const currentTimeFormatted = computed(() => formatTime(props.tauToSeconds(props.currentTau)))
 const maxTimeFormatted = computed(() => formatTime(props.tauToSeconds(props.tauMax)))
+
+// Get the time scale reference for the selected speed
+const speedReference = computed(() => {
+  const option = speedOptions.find(o => o.value === selectedSpeed.value)
+  if (!option) return ''
+
+  if (option.value === '1min') {
+    return 'completes in ~1 minute'
+  }
+
+  // Get the tau delta and convert back to seconds
+  const tauDelta = option.getTauDelta()
+  const secondsPerTick = props.tauToSeconds(tauDelta)
+
+  // Find the appropriate time scale reference
+  const scale = timeScales.find(s => secondsPerTick < s.seconds * 10)
+  return scale ? `${scale.reference}` : ''
+})
 
 let animationFrameId: number | null = null
 let lastTime = 0
@@ -175,6 +194,7 @@ onUnmounted(() => {
           {{ option.label }}
         </option>
       </select>
+      <span v-if="speedReference" class="text-[10px] text-gray-500">{{ speedReference }}</span>
     </div>
 
     <!-- Control Buttons -->
