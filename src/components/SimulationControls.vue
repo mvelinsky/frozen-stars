@@ -24,6 +24,11 @@ const FRAME_INTERVAL = 1000 / TARGET_FPS
 type SpeedOption = { value: string; label: string; getTauDelta: () => number }
 
 const speedOptions: SpeedOption[] = [
+  { value: '1e-20s', label: '10⁻²⁰s/tick', getTauDelta: () => 1e-20 / props.tauToSeconds(1) },
+  { value: '1e-19s', label: '10⁻¹⁹s/tick', getTauDelta: () => 1e-19 / props.tauToSeconds(1) },
+  { value: '1e-18s', label: '10⁻¹⁸s/tick', getTauDelta: () => 1e-18 / props.tauToSeconds(1) },
+  { value: '1e-17s', label: '10⁻¹⁷s/tick', getTauDelta: () => 1e-17 / props.tauToSeconds(1) },
+  { value: '1e-16s', label: '10⁻¹⁶s/tick', getTauDelta: () => 1e-16 / props.tauToSeconds(1) },
   { value: '1fs', label: '1fs/tick', getTauDelta: () => 1e-15 / props.tauToSeconds(1) },
   { value: '1ps', label: '1ps/tick', getTauDelta: () => 1e-12 / props.tauToSeconds(1) },
   { value: '1ns', label: '1ns/tick', getTauDelta: () => 1e-9 / props.tauToSeconds(1) },
@@ -42,6 +47,7 @@ const progress = computed(() => {
 })
 
 function formatTime(seconds: number): string {
+  if (seconds < 1e-15) return `${(seconds * 1e18).toFixed(2)}as`
   if (seconds < 1e-12) return `${(seconds * 1e15).toFixed(2)}fs`
   if (seconds < 1e-9) return `${(seconds * 1e12).toFixed(2)}ps`
   if (seconds < 1e-6) return `${(seconds * 1e9).toFixed(2)}ns`
@@ -51,7 +57,10 @@ function formatTime(seconds: number): string {
   if (seconds < 3600) return `${(seconds / 60).toFixed(2)}m`
   if (seconds < 86400) return `${(seconds / 3600).toFixed(2)}h`
   if (seconds < 31536000) return `${(seconds / 86400).toFixed(2)}d`
-  return `${(seconds / 31536000).toFixed(2)}y`
+  const years = seconds / 31536000
+  if (years < 1e15) return `${years.toFixed(2)}y`
+  // Use scientific notation for very large values
+  return `${years.toExponential(2)}y`
 }
 
 const currentTimeFormatted = computed(() => formatTime(props.tauToSeconds(props.currentTau)))

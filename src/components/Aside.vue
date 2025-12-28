@@ -77,6 +77,7 @@ function resetSimulation() {
 
 function formatTime(tau: number): string {
   const seconds = units.value.tauToSeconds(tau)
+  if (seconds < 1e-15) return `${(seconds * 1e18).toFixed(2)}as`
   if (seconds < 1e-12) return `${(seconds * 1e15).toFixed(2)}fs`
   if (seconds < 1e-9) return `${(seconds * 1e12).toFixed(2)}ps`
   if (seconds < 1e-6) return `${(seconds * 1e9).toFixed(2)}ns`
@@ -86,7 +87,10 @@ function formatTime(tau: number): string {
   if (seconds < 3600) return `${(seconds / 60).toFixed(2)}m`
   if (seconds < 86400) return `${(seconds / 3600).toFixed(2)}h`
   if (seconds < 31536000) return `${(seconds / 86400).toFixed(2)}d`
-  return `${(seconds / 31536000).toFixed(2)}y`
+  const years = seconds / 31536000
+  if (years < 1e15) return `${years.toFixed(2)}y`
+  // Use scientific notation for very large values
+  return `${years.toExponential(2)}y`
 }
 </script>
 
