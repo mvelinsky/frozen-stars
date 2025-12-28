@@ -6,6 +6,33 @@ export interface TimeScale {
 }
 
 export const timeScales: TimeScale[] = [
+  // Planck scale
+  { exponent: -44, seconds: 1e-44, label: "1 Planck time", reference: "smallest meaningful time" },
+  { exponent: -43, seconds: 1e-43, label: "10 Planck times", reference: "quantum gravity regime" },
+  { exponent: -42, seconds: 1e-42, label: "100 Planck times", reference: "spacetime foam fluctuations" },
+  { exponent: -41, seconds: 1e-41, label: "10⁻⁴¹ seconds", reference: "quantum geometry effects" },
+  { exponent: -40, seconds: 1e-40, label: "10⁻⁴⁰ seconds", reference: "string vibration timescale" },
+
+  // Post-Planck
+  { exponent: -39, seconds: 1e-39, label: "10⁻³⁹ seconds", reference: "grand unification scale" },
+  { exponent: -38, seconds: 1e-38, label: "10⁻³⁸ seconds", reference: "electroweak unification" },
+  { exponent: -37, seconds: 1e-37, label: "10⁻³⁷ seconds", reference: "inflation epoch begins" },
+  { exponent: -36, seconds: 1e-36, label: "10⁻³⁶ seconds", reference: "cosmic inflation" },
+  { exponent: -35, seconds: 1e-35, label: "10⁻³⁵ seconds", reference: "inflation ends" },
+
+  // Quark era
+  { exponent: -34, seconds: 1e-34, label: "10⁻³⁴ seconds", reference: "quark-gluon plasma forms" },
+  { exponent: -33, seconds: 1e-33, label: "10⁻³³ seconds", reference: "quarks and gluons free" },
+  { exponent: -32, seconds: 1e-32, label: "10⁻³² seconds", reference: "strong force separates" },
+  { exponent: -31, seconds: 1e-31, label: "10⁻³¹ seconds", reference: "universe cools rapidly" },
+  { exponent: -30, seconds: 1e-30, label: "10⁻³⁰ seconds", reference: "particle soup expanding" },
+
+   // Particle physics timescales
+  { exponent: -29, seconds: 1e-29, label: "10⁻²⁹ seconds", reference: "Higgs field active" },
+  { exponent: -28, seconds: 1e-28, label: "10⁻²⁸ seconds", reference: "particles gaining mass" },
+  { exponent: -27, seconds: 1e-27, label: "10⁻²⁷ seconds", reference: "top quark lifetime" },
+  { exponent: -26, seconds: 1e-26, label: "10⁻²⁶ seconds", reference: "Higgs boson lifetime" },
+
   // Planck scale and beyond
   { exponent: -25, seconds: 1e-25, label: "10⁻²⁵ seconds", reference: "light crosses a quark" },
   { exponent: -24, seconds: 1e-24, label: "1 yoctosecond", reference: "light crosses a proton" },

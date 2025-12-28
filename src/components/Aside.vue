@@ -2,7 +2,6 @@
 import { ref, watch, computed } from 'vue'
 import { BlackHoleEngine } from '../engine/BlackHoleEngine'
 import { createUnits } from '../engine/units'
-import { timeScales } from '../engine/timescales'
 import Controls from './Controls.vue'
 import SimulationControls from './SimulationControls.vue'
 
@@ -10,12 +9,14 @@ const props = defineProps<{
   mass: number
   nFaller: number
   nObserver: number
+  currentTau: number
 }>()
 
 const emit = defineEmits<{
   'update:mass': [value: number]
   'update:nFaller': [value: number]
   'update:nObserver': [value: number]
+  'update:currentTau': [value: number]
 }>()
 
 // Engine instance
@@ -24,19 +25,11 @@ const engine = ref<BlackHoleEngine>(new BlackHoleEngine({
   nObserver: props.nObserver,
 }))
 
-// Current simulation time (tau)
-const currentTau = ref<number>(0)
-
 // Get tauMax from engine
 const tauMax = computed(() => engine.value.tauMax)
 
 // Get units for time conversion
 const units = computed(() => createUnits(props.mass))
-
-// Get current state from engine
-const currentState = computed(() => {
-  return engine.value.getState(currentTau.value);
-})
 
 // Recreate engine when config changes
 watch([() => props.nFaller, () => props.nObserver], () => {
@@ -44,8 +37,6 @@ watch([() => props.nFaller, () => props.nObserver], () => {
     nFaller: props.nFaller,
     nObserver: props.nObserver,
   })
-  // Reset currentTau when engine is recreated
-  currentTau.value = 0
 })
 
 function updateMass(value: number) {
@@ -61,7 +52,7 @@ function updateObserver(value: number) {
 }
 
 function updateCurrentTau(value: number) {
-  currentTau.value = value
+  emit('update:currentTau', value)
 }
 
 function startSimulation() {
@@ -73,35 +64,8 @@ function stopSimulation() {
 }
 
 function resetSimulation() {
-  currentTau.value = 0
+  emit('update:currentTau', 0)
 }
-
-function formatTime(tau: number): string {
-  const seconds = units.value.tauToSeconds(tau)
-  if (seconds < 1e-15) return `${(seconds * 1e18).toFixed(2)}as`
-  if (seconds < 1e-12) return `${(seconds * 1e15).toFixed(2)}fs`
-  if (seconds < 1e-9) return `${(seconds * 1e12).toFixed(2)}ps`
-  if (seconds < 1e-6) return `${(seconds * 1e9).toFixed(2)}ns`
-  if (seconds < 1e-3) return `${(seconds * 1e6).toFixed(2)}μs`
-  if (seconds < 1) return `${(seconds * 1e3).toFixed(2)}ms`
-  if (seconds < 60) return `${seconds.toFixed(2)}s`
-  if (seconds < 3600) return `${(seconds / 60).toFixed(2)}m`
-  if (seconds < 86400) return `${(seconds / 3600).toFixed(2)}h`
-  if (seconds < 31536000) return `${(seconds / 86400).toFixed(2)}d`
-  const years = seconds / 31536000
-  if (years < 1e15) return `${years.toFixed(2)}y`
-  // Use scientific notation for very large values
-  return `${years.toExponential(2)}y`
-}
-
-function getTimeScaleReference(tau: number): string {
-  const seconds = units.value.tauToSeconds(tau)
-  // Find the appropriate time scale
-  const scale = timeScales.find(s => seconds < s.seconds * 10)
-  return scale?.reference || ''
-}
-
-const observerTimeReference = computed(() => getTimeScaleReference(currentState.value.object2.tau))
 </script>
 
 <template>
@@ -135,24 +99,6 @@ const observerTimeReference = computed(() => getTimeScaleReference(currentState.
             @stop="stopSimulation"
             @reset="resetSimulation"
           />
-        </div>
-
-        <!-- Proper Time Display -->
-        <div class="mt-4 pt-4 border-t border-white/5">
-          <h3 class="text-[10px] font-medium text-gray-500 mb-2 uppercase tracking-widest">Proper Time</h3>
-          <div class="grid grid-cols-2 gap-3">
-            <!-- Faller -->
-            <div class="flex flex-col gap-1">
-              <span class="text-[10px] text-gray-600">Faller</span>
-              <span class="font-mono text-xs text-blue-400">{{ formatTime(currentState.object1.tau) }}</span>
-            </div>
-            <!-- Observer -->
-            <div class="flex flex-col gap-1">
-              <span class="text-[10px] text-gray-600">Observer</span>
-              <span class="font-mono text-xs text-blue-400">{{ formatTime(currentState.object2.tau) }}</span>
-              <span v-if="observerTimeReference" class="text-[10px] text-gray-500">{{ observerTimeReference }}</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
