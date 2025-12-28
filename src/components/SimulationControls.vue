@@ -16,6 +16,7 @@ const emit = defineEmits<{
 
 const isRunning = ref<boolean>(false)
 const selectedSpeed = ref<string>('1s')
+const stopOneTickBefore = ref<boolean>(false)
 
 const TARGET_FPS = 30
 const FRAME_INTERVAL = 1000 / TARGET_FPS
@@ -23,6 +24,9 @@ const FRAME_INTERVAL = 1000 / TARGET_FPS
 type SpeedOption = { value: string; label: string; getTauDelta: () => number }
 
 const speedOptions: SpeedOption[] = [
+  { value: '1fs', label: '1fs/tick', getTauDelta: () => 1e-15 / props.tauToSeconds(1) },
+  { value: '1ps', label: '1ps/tick', getTauDelta: () => 1e-12 / props.tauToSeconds(1) },
+  { value: '1ns', label: '1ns/tick', getTauDelta: () => 1e-9 / props.tauToSeconds(1) },
   { value: '1us', label: '1μs/tick', getTauDelta: () => 1e-6 / props.tauToSeconds(1) },
   { value: '1ms', label: '1ms/tick', getTauDelta: () => 1e-3 / props.tauToSeconds(1) },
   { value: '1s', label: '1s/tick', getTauDelta: () => 1 / props.tauToSeconds(1) },
@@ -38,6 +42,11 @@ const progress = computed(() => {
 })
 
 function formatTime(seconds: number): string {
+  if (seconds < 1e-12) return `${(seconds * 1e15).toFixed(2)}fs`
+  if (seconds < 1e-9) return `${(seconds * 1e12).toFixed(2)}ps`
+  if (seconds < 1e-6) return `${(seconds * 1e9).toFixed(2)}ns`
+  if (seconds < 1e-3) return `${(seconds * 1e6).toFixed(2)}μs`
+  if (seconds < 1) return `${(seconds * 1e3).toFixed(2)}ms`
   if (seconds < 60) return `${seconds.toFixed(2)}s`
   if (seconds < 3600) return `${(seconds / 60).toFixed(2)}m`
   if (seconds < 86400) return `${(seconds / 3600).toFixed(2)}h`
@@ -64,10 +73,13 @@ function animate(currentTime: number) {
     const option = speedOptions.find(o => o.value === selectedSpeed.value)
     if (option) {
       const tauDelta = option.getTauDelta()
-      const newTau = Math.min(props.currentTau + tauDelta, props.tauMax)
+
+      // Calculate the stopping point based on checkbox
+      const stopPoint = stopOneTickBefore.value ? props.tauMax - tauDelta : props.tauMax
+      const newTau = Math.min(props.currentTau + tauDelta, stopPoint)
       emit('update:currentTau', newTau)
 
-      if (newTau >= props.tauMax) {
+      if (newTau >= stopPoint) {
         stop()
         return
       }
@@ -179,5 +191,16 @@ onUnmounted(() => {
         Reset
       </button>
     </div>
+
+    <!-- Stop One Tick Before Checkbox -->
+    <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+      <input
+        v-model="stopOneTickBefore"
+        type="checkbox"
+        :disabled="isRunning"
+        class="w-3 h-3 bg-white/5 border border-white/10 rounded focus:outline-none focus:border-blue-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
+      />
+      <span>Stop 1 tick before horizon</span>
+    </label>
   </div>
 </template>

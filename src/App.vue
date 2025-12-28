@@ -5,8 +5,8 @@ import Aside from './components/Aside.vue'
 
 // Configuration
 const mass = ref<number>(10)
-const nFaller = ref<number>(-7)
-const nObserver = ref<number>(-8)
+const nFaller = ref<number>(0)
+const nObserver = ref<number>(-1)
 
 // Engine instance
 const engine = ref<BlackHoleEngine>(new BlackHoleEngine({
