@@ -9,10 +9,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'update:currentTau': [value: number]
+  'update:currentNTau': [value: number]  // Logarithmic time coordinate
   'start': []
   'stop': []
   'reset': []
+  'skipToEnd': []
 }>()
 
 const isRunning = ref<boolean>(false)
@@ -52,29 +53,44 @@ watch(() => props.currentTau, (newTau) => {
   }
 }, { immediate: true })
 
-type SpeedOption = { value: string; label: string; getNTauDelta: () => number }
+type SpeedOption = { value: string; label: string; secondsPerTick: number; getNTauDelta: () => number }
 
 const speedOptions: SpeedOption[] = [
-  { value: '1e-25s', label: '10⁻²⁵s/tick', getNTauDelta: () => computeNTauDelta(1e-25) },
-  { value: '1ys', label: '1ys/tick (yoctosecond, 10⁻²⁴s)', getNTauDelta: () => computeNTauDelta(1e-24) },
-  { value: '10ys', label: '10ys/tick (10 yoctoseconds, 10⁻²³s)', getNTauDelta: () => computeNTauDelta(1e-23) },
-  { value: '100ys', label: '100ys/tick (100 yoctoseconds, 10⁻²²s)', getNTauDelta: () => computeNTauDelta(1e-22) },
-  { value: '1zs', label: '1zs/tick (zeptosecond, 10⁻²¹s)', getNTauDelta: () => computeNTauDelta(1e-21) },
-  { value: '10zs', label: '10zs/tick (10 zeptoseconds, 10⁻²⁰s)', getNTauDelta: () => computeNTauDelta(1e-20) },
-  { value: '100zs', label: '100zs/tick (100 zeptoseconds, 10⁻¹⁹s)', getNTauDelta: () => computeNTauDelta(1e-19) },
-  { value: '1as', label: '1as/tick (attosecond, 10⁻¹⁸s)', getNTauDelta: () => computeNTauDelta(1e-18) },
-  { value: '10as', label: '10as/tick (10 attoseconds, 10⁻¹⁷s)', getNTauDelta: () => computeNTauDelta(1e-17) },
-  { value: '100as', label: '100as/tick (100 attoseconds, 10⁻¹⁶s)', getNTauDelta: () => computeNTauDelta(1e-16) },
-  { value: '1fs', label: '1fs/tick (femtosecond, 10⁻¹⁵s)', getNTauDelta: () => computeNTauDelta(1e-15) },
-  { value: '1ps', label: '1ps/tick (picosecond, 10⁻¹²s)', getNTauDelta: () => computeNTauDelta(1e-12) },
-  { value: '1ns', label: '1ns/tick (nanosecond, 10⁻⁹s)', getNTauDelta: () => computeNTauDelta(1e-9) },
-  { value: '1us', label: '1μs/tick (microsecond, 10⁻⁶s)', getNTauDelta: () => computeNTauDelta(1e-6) },
-  { value: '1ms', label: '1ms/tick (millisecond, 10⁻³s)', getNTauDelta: () => computeNTauDelta(1e-3) },
-  { value: '1s', label: '1s/tick (second, 10⁰s)', getNTauDelta: () => computeNTauDelta(1) },
-  { value: '1m', label: '1m/tick (minute, 60s)', getNTauDelta: () => computeNTauDelta(60) },
-  { value: '1h', label: '1h/tick (hour, 3600s)', getNTauDelta: () => computeNTauDelta(3600) },
-  { value: '1d', label: '1d/tick (day, 86400s)', getNTauDelta: () => computeNTauDelta(86400) },
-  { value: '1min', label: 'Complete in 1min', getNTauDelta: () => {
+  { value: '1e-40s', label: '10⁻⁴⁰s/tick (10⁻⁴⁰s)', secondsPerTick: 1e-40, getNTauDelta: () => computeNTauDelta(1e-40) },
+  { value: '1e-39s', label: '10⁻³⁹s/tick (10⁻³⁹s)', secondsPerTick: 1e-39, getNTauDelta: () => computeNTauDelta(1e-39) },
+  { value: '1e-38s', label: '10⁻³⁸s/tick (10⁻³⁸s)', secondsPerTick: 1e-38, getNTauDelta: () => computeNTauDelta(1e-38) },
+  { value: '1e-37s', label: '10⁻³⁷s/tick (10⁻³⁷s)', secondsPerTick: 1e-37, getNTauDelta: () => computeNTauDelta(1e-37) },
+  { value: '1e-36s', label: '10⁻³⁶s/tick (10⁻³⁶s)', secondsPerTick: 1e-36, getNTauDelta: () => computeNTauDelta(1e-36) },
+  { value: '1e-35s', label: '10⁻³⁵s/tick (10⁻³⁵s)', secondsPerTick: 1e-35, getNTauDelta: () => computeNTauDelta(1e-35) },
+  { value: '1e-34s', label: '10⁻³⁴s/tick (10⁻³⁴s)', secondsPerTick: 1e-34, getNTauDelta: () => computeNTauDelta(1e-34) },
+  { value: '1e-33s', label: '10⁻³³s/tick (10⁻³³s)', secondsPerTick: 1e-33, getNTauDelta: () => computeNTauDelta(1e-33) },
+  { value: '1e-32s', label: '10⁻³²s/tick (10⁻³²s)', secondsPerTick: 1e-32, getNTauDelta: () => computeNTauDelta(1e-32) },
+  { value: '1e-31s', label: '10⁻³¹s/tick (10⁻³¹s)', secondsPerTick: 1e-31, getNTauDelta: () => computeNTauDelta(1e-31) },
+  { value: '1e-30s', label: '1qs/tick (quectosecond, 10⁻³⁰s)', secondsPerTick: 1e-30, getNTauDelta: () => computeNTauDelta(1e-30) },
+  { value: '1e-29s', label: '10qs/tick (10 quectoseconds, 10⁻²⁹s)', secondsPerTick: 1e-29, getNTauDelta: () => computeNTauDelta(1e-29) },
+  { value: '1e-28s', label: '100qs/tick (100 quectoseconds, 10⁻²⁸s)', secondsPerTick: 1e-28, getNTauDelta: () => computeNTauDelta(1e-28) },
+  { value: '1e-27s', label: '1rs/tick (rontosecond, 10⁻²⁷s)', secondsPerTick: 1e-27, getNTauDelta: () => computeNTauDelta(1e-27) },
+  { value: '1e-26s', label: '10rs/tick (10 rontoseconds, 10⁻²⁶s)', secondsPerTick: 1e-26, getNTauDelta: () => computeNTauDelta(1e-26) },
+  { value: '1e-25s', label: '100rs/tick (100 rontoseconds, 10⁻²⁵s)', secondsPerTick: 1e-25, getNTauDelta: () => computeNTauDelta(1e-25) },
+  { value: '1ys', label: '1ys/tick (yoctosecond, 10⁻²⁴s)', secondsPerTick: 1e-24, getNTauDelta: () => computeNTauDelta(1e-24) },
+  { value: '10ys', label: '10ys/tick (10 yoctoseconds, 10⁻²³s)', secondsPerTick: 1e-23, getNTauDelta: () => computeNTauDelta(1e-23) },
+  { value: '100ys', label: '100ys/tick (100 yoctoseconds, 10⁻²²s)', secondsPerTick: 1e-22, getNTauDelta: () => computeNTauDelta(1e-22) },
+  { value: '1zs', label: '1zs/tick (zeptosecond, 10⁻²¹s)', secondsPerTick: 1e-21, getNTauDelta: () => computeNTauDelta(1e-21) },
+  { value: '10zs', label: '10zs/tick (10 zeptoseconds, 10⁻²⁰s)', secondsPerTick: 1e-20, getNTauDelta: () => computeNTauDelta(1e-20) },
+  { value: '100zs', label: '100zs/tick (100 zeptoseconds, 10⁻¹⁹s)', secondsPerTick: 1e-19, getNTauDelta: () => computeNTauDelta(1e-19) },
+  { value: '1as', label: '1as/tick (attosecond, 10⁻¹⁸s)', secondsPerTick: 1e-18, getNTauDelta: () => computeNTauDelta(1e-18) },
+  { value: '10as', label: '10as/tick (10 attoseconds, 10⁻¹⁷s)', secondsPerTick: 1e-17, getNTauDelta: () => computeNTauDelta(1e-17) },
+  { value: '100as', label: '100as/tick (100 attoseconds, 10⁻¹⁶s)', secondsPerTick: 1e-16, getNTauDelta: () => computeNTauDelta(1e-16) },
+  { value: '1fs', label: '1fs/tick (femtosecond, 10⁻¹⁵s)', secondsPerTick: 1e-15, getNTauDelta: () => computeNTauDelta(1e-15) },
+  { value: '1ps', label: '1ps/tick (picosecond, 10⁻¹²s)', secondsPerTick: 1e-12, getNTauDelta: () => computeNTauDelta(1e-12) },
+  { value: '1ns', label: '1ns/tick (nanosecond, 10⁻⁹s)', secondsPerTick: 1e-9, getNTauDelta: () => computeNTauDelta(1e-9) },
+  { value: '1us', label: '1μs/tick (microsecond, 10⁻⁶s)', secondsPerTick: 1e-6, getNTauDelta: () => computeNTauDelta(1e-6) },
+  { value: '1ms', label: '1ms/tick (millisecond, 10⁻³s)', secondsPerTick: 1e-3, getNTauDelta: () => computeNTauDelta(1e-3) },
+  { value: '1s', label: '1s/tick (second, 10⁰s)', secondsPerTick: 1, getNTauDelta: () => computeNTauDelta(1) },
+  { value: '1m', label: '1m/tick (minute, 60s)', secondsPerTick: 60, getNTauDelta: () => computeNTauDelta(60) },
+  { value: '1h', label: '1h/tick (hour, 3600s)', secondsPerTick: 3600, getNTauDelta: () => computeNTauDelta(3600) },
+  { value: '1d', label: '1d/tick (day, 86400s)', secondsPerTick: 86400, getNTauDelta: () => computeNTauDelta(86400) },
+  { value: '1min', label: 'Complete in 1min', secondsPerTick: 0, getNTauDelta: () => {
     const totalTicks = 60 * TARGET_FPS
     const finalNTau = 20  // Cap at n_tau = 20 (tau = tauMax * 0.999999999999999999)
     return finalNTau / totalTicks
@@ -165,19 +181,23 @@ function animate(currentTime: number) {
     if (option) {
       const nTauDelta = option.getNTauDelta()
 
+      // Calculate the stopping point based on checkbox
+      // n_tau = 20 is effectively tauMax (infinity in practical terms)
+      const stopPoint = stopOneTickBefore.value ? 20 - nTauDelta : 20
+
       // Increment n_tau logarithmically
       const newNTau = currentNTau.value + nTauDelta
 
-      // Check if we've reached or passed the effective end (n_tau = 20 is ~tauMax)
-      if (newNTau >= 20 || !isFinite(newNTau)) {
-        emit('update:currentTau', props.tauMax)
+      // Check if we've reached or passed the stopping point
+      if (newNTau >= stopPoint || !isFinite(newNTau)) {
+        // currentNTau.value = Math.min(newNTau, stopPoint)
+        // emit('update:currentNTau', currentNTau.value)
         stop()
         return
       }
 
       currentNTau.value = newNTau
-      const newTau = nTauToTau(newNTau, props.tauMax)
-      emit('update:currentTau', newTau)
+      emit('update:currentNTau', newNTau)  // Emit n_tau directly
     }
     lastTime = currentTime
   }
@@ -205,7 +225,7 @@ function stop() {
 function reset() {
   stop()
   currentNTau.value = 0
-  emit('update:currentTau', 0)
+  emit('update:currentNTau', 0)  // n_tau = 0
   emit('reset')
 }
 
@@ -213,7 +233,30 @@ function onSliderInput(event: Event) {
   const value = Number((event.target as HTMLInputElement).value)
   const newTau = (value / 100) * props.tauMax
   currentNTau.value = tauToNTau(newTau, props.tauMax)
-  emit('update:currentTau', newTau)
+  emit('update:currentNTau', currentNTau.value)  // Emit n_tau directly
+}
+
+function skipToEnd() {
+  const option = speedOptions.find(o => o.value === selectedSpeed.value)
+  if (!option) return
+
+  // For "Complete in 1min", jump to n_tau = 19.9 (very close to end)
+  if (option.value === '1min') {
+    currentNTau.value = 19.9
+    emit('update:currentNTau', 19.9)  // Emit n_tau directly
+    emit('skipToEnd')
+    return
+  }
+
+  // For other speeds: jump to position one tick before end
+  const secondsPerTick = option.secondsPerTick
+  const tauDelta = secondsPerTick / props.tauToSeconds(1)
+  const targetTau = Math.max(0, props.tauMax - tauDelta)
+  const targetNTau = tauToNTau(targetTau, props.tauMax)
+
+  currentNTau.value = targetNTau
+  emit('update:currentNTau', targetNTau)  // Emit n_tau directly
+  emit('skipToEnd')
 }
 
 onUnmounted(() => {
@@ -288,6 +331,13 @@ onUnmounted(() => {
         class="flex-1 px-3 py-1.5 text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         Stop
+      </button>
+      <button
+        @click="skipToEnd"
+        :disabled="isRunning"
+        class="flex-1 px-3 py-1.5 text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded hover:bg-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        Skip to End
       </button>
       <button
         @click="reset"

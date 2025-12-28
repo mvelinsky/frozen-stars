@@ -10,8 +10,8 @@ const mass = ref<number>(10)
 const nFaller = ref<number>(0)
 const nObserver = ref<number>(-1)
 
-// Current simulation time (tau)
-const currentTau = ref<number>(0)
+// Current simulation time in logarithmic form (n_tau)
+const currentNTau = ref<number>(0)
 
 // Engine instance
 const engine = ref<BlackHoleEngine>(new BlackHoleEngine({
@@ -22,8 +22,8 @@ const engine = ref<BlackHoleEngine>(new BlackHoleEngine({
 // Get units for time conversion
 const units = computed(() => createUnits(mass.value))
 
-// Get current state from engine
-const currentState = computed(() => engine.value.getState(currentTau.value))
+// Get current state from engine using logarithmic time
+const currentState = computed(() => engine.value.getStateByNTau(currentNTau.value))
 
 // Recreate engine when config changes
 watch([nFaller, nObserver], () => {
@@ -31,8 +31,8 @@ watch([nFaller, nObserver], () => {
     nFaller: nFaller.value,
     nObserver: nObserver.value,
   })
-  // Reset currentTau when engine is recreated
-  currentTau.value = 0
+  // Reset currentNTau when engine is recreated
+  currentNTau.value = 0
 })
 
 function formatTime(tau: number): string {
@@ -68,7 +68,7 @@ const observerTimeReference = computed(() => getTimeScaleReference(currentState.
       v-model:mass="mass"
       v-model:n-faller="nFaller"
       v-model:n-observer="nObserver"
-      v-model:current-tau="currentTau"
+      v-model:current-n-tau="currentNTau"
     />
 
     <!-- Visualization Area -->

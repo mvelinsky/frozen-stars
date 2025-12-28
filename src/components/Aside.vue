@@ -9,14 +9,14 @@ const props = defineProps<{
   mass: number
   nFaller: number
   nObserver: number
-  currentTau: number
+  currentNTau: number  // Logarithmic time coordinate
 }>()
 
 const emit = defineEmits<{
   'update:mass': [value: number]
   'update:nFaller': [value: number]
   'update:nObserver': [value: number]
-  'update:currentTau': [value: number]
+  'update:currentNTau': [value: number]
 }>()
 
 // Engine instance
@@ -30,6 +30,9 @@ const tauMax = computed(() => engine.value.tauMax)
 
 // Get units for time conversion
 const units = computed(() => createUnits(props.mass))
+
+// Compute linear tau from n_tau for display purposes
+const currentTau = computed(() => engine.value.nTauToTau(props.currentNTau))
 
 // Recreate engine when config changes
 watch([() => props.nFaller, () => props.nObserver], () => {
@@ -51,8 +54,8 @@ function updateObserver(value: number) {
   emit('update:nObserver', value)
 }
 
-function updateCurrentTau(value: number) {
-  emit('update:currentTau', value)
+function updateCurrentNTau(value: number) {
+  emit('update:currentNTau', value)
 }
 
 function startSimulation() {
@@ -64,7 +67,7 @@ function stopSimulation() {
 }
 
 function resetSimulation() {
-  emit('update:currentTau', 0)
+  emit('update:currentNTau', 0)
 }
 </script>
 
@@ -94,7 +97,7 @@ function resetSimulation() {
             :tau-max="tauMax"
             :current-tau="currentTau"
             :tau-to-seconds="units.tauToSeconds"
-            @update:current-tau="updateCurrentTau"
+            @update:current-n-tau="updateCurrentNTau"
             @start="startSimulation"
             @stop="stopSimulation"
             @reset="resetSimulation"
