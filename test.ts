@@ -12,8 +12,14 @@ let engine = new BlackHoleEngine({
 let rObserver = nToRadius(engine.cfg.nObserver);  // 11
 let rFaller = nToRadius(engine.cfg.nFaller);      // 2
 
+
 console.log(`Black hole mass: ${units.M_solar} M☉`);
 console.log(`Schwarzschild radius: ${units.rs_km.toFixed(1)} km`);
 console.log(`Observer distance: ${units.distanceToKm(rObserver).toFixed(0)} km`);
 console.log(`Faller starts at: ${units.distanceToKm(rFaller).toFixed(0)} km`);
 console.log(`Fall time: ${units.tauToSeconds(engine.tauMax).toFixed(6)} s`);
+
+console.log("taumax", engine.tauMax);
+console.log(engine.getState(1));
+console.log(engine.getState(3));
+console.log(engine.getState(4));
