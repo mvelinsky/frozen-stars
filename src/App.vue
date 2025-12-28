@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { BlackHoleEngine } from './engine/BlackHoleEngine'
-import Controls from './components/Controls.vue'
+import Aside from './components/Aside.vue'
 
 // Configuration
 const mass = ref<number>(10)
@@ -25,14 +25,12 @@ watch([nFaller, nObserver], () => {
 
 <template>
   <div class="h-screen bg-[#0a0a12] text-gray-100 flex">
-    <!-- Controls Sidebar -->
-    <div class="w-80 h-full bg-[#0f0f18] border-r border-white/5 flex flex-col">
-      <Controls
-        v-model:mass="mass"
-        v-model:nFaller="nFaller"
-        v-model:nObserver="nObserver"
-      />
-    </div>
+    <!-- Sidebar -->
+    <Aside
+      v-model:mass="mass"
+      v-model:n-faller="nFaller"
+      v-model:n-observer="nObserver"
+    />
 
     <!-- Visualization Area -->
     <div class="flex-1 bg-[#0a0a12]">

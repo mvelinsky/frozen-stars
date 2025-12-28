@@ -30,15 +30,8 @@ function onUpdateObserver(value: number) {
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <!-- Header -->
-    <header class="px-5 py-4 border-b border-white/5">
-      <h1 class="text-sm font-medium tracking-tight">Black Hole Frozen Star</h1>
-    </header>
-
-    <!-- Controls -->
-    <div class="flex-1 overflow-y-auto p-5 space-y-5">
-      <!-- Mass Input -->
+  <div class="p-5 space-y-5">
+    <!-- Mass Input -->
     <div class="flex flex-col gap-1.5">
       <label class="flex justify-between items-center text-xs">
         <span class="text-gray-400">Mass</span>
@@ -122,7 +115,6 @@ function onUpdateObserver(value: number) {
           <span class="text-gray-600">at horizon</span>
         </div>
       </div>
-    </div>
     </div>
   </div>
 </template>
