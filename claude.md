@@ -97,3 +97,11 @@ The simulation uses simplified equations suitable for visualization:
 
 
 Photon propagation approximates the increasing light travel time near the horizon.
+
+## Frontend
+
+The frontend is a Vue 3 application (`src/App.vue`) using the Composition API with `<script setup>` syntax. It instantiates `BlackHoleEngine` with reactive refs for configuration (`nFaller`, `nObserver`) and provides a basic layout structure. Currently a shell—visualization and controls are yet to be implemented.
+
+### Styling
+
+Tailwind CSS 4.1 is used for all styling. Prefer standard Tailwind utility classes (e.g., `flex`, `p-4`, `text-lg`). When specific values are needed, use arbitrary values with square brackets like `pt-[28px]` or `w-[373px]` instead of custom CSS.
