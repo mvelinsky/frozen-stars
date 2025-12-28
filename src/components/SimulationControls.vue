@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 
 const props = defineProps<{
   tauMax: number
@@ -15,6 +15,22 @@ const emit = defineEmits<{
 }>()
 
 const isRunning = ref<boolean>(false)
+const selectedSpeed = ref<string>('1s')
+
+const TARGET_FPS = 30
+const FRAME_INTERVAL = 1000 / TARGET_FPS
+
+type SpeedOption = { value: string; label: string; getTauDelta: () => number }
+
+const speedOptions: SpeedOption[] = [
+  { value: '1us', label: '1μs/tick', getTauDelta: () => 1e-6 / props.tauToSeconds(1) },
+  { value: '1ms', label: '1ms/tick', getTauDelta: () => 1e-3 / props.tauToSeconds(1) },
+  { value: '1s', label: '1s/tick', getTauDelta: () => 1 / props.tauToSeconds(1) },
+  { value: '1m', label: '1m/tick', getTauDelta: () => 60 / props.tauToSeconds(1) },
+  { value: '1h', label: '1h/tick', getTauDelta: () => 3600 / props.tauToSeconds(1) },
+  { value: '1d', label: '1d/tick', getTauDelta: () => 86400 / props.tauToSeconds(1) },
+  { value: '1min', label: 'Complete in 1min', getTauDelta: () => props.tauMax / (60 * TARGET_FPS) },
+]
 
 const progress = computed(() => {
   if (props.tauMax === 0) return 0
@@ -32,18 +48,55 @@ function formatTime(seconds: number): string {
 const currentTimeFormatted = computed(() => formatTime(props.tauToSeconds(props.currentTau)))
 const maxTimeFormatted = computed(() => formatTime(props.tauToSeconds(props.tauMax)))
 
+let animationFrameId: number | null = null
+let lastTime = 0
+
+function animate(currentTime: number) {
+  if (!isRunning.value) return
+
+  if (lastTime === 0) {
+    lastTime = currentTime
+  }
+
+  const elapsed = currentTime - lastTime
+
+  if (elapsed >= FRAME_INTERVAL) {
+    const option = speedOptions.find(o => o.value === selectedSpeed.value)
+    if (option) {
+      const tauDelta = option.getTauDelta()
+      const newTau = Math.min(props.currentTau + tauDelta, props.tauMax)
+      emit('update:currentTau', newTau)
+
+      if (newTau >= props.tauMax) {
+        stop()
+        return
+      }
+    }
+    lastTime = currentTime
+  }
+
+  animationFrameId = requestAnimationFrame(animate)
+}
+
 function start() {
+  if (isRunning.value) return
   isRunning.value = true
+  lastTime = 0
   emit('start')
+  animationFrameId = requestAnimationFrame(animate)
 }
 
 function stop() {
   isRunning.value = false
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId)
+    animationFrameId = null
+  }
   emit('stop')
 }
 
 function reset() {
-  isRunning.value = false
+  stop()
   emit('update:currentTau', 0)
   emit('reset')
 }
@@ -52,6 +105,10 @@ function onSliderInput(event: Event) {
   const value = Number((event.target as HTMLInputElement).value)
   emit('update:currentTau', (value / 100) * props.tauMax)
 }
+
+onUnmounted(() => {
+  stop()
+})
 </script>
 
 <template>
@@ -83,6 +140,20 @@ function onSliderInput(event: Event) {
         <span class="text-blue-300">{{ currentTimeFormatted }}</span>
         <span>{{ maxTimeFormatted }}</span>
       </div>
+    </div>
+
+    <!-- Speed Selector -->
+    <div class="flex flex-col gap-1.5">
+      <label class="text-xs text-gray-400">Speed</label>
+      <select
+        v-model="selectedSpeed"
+        :disabled="isRunning"
+        class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 text-gray-200 text-xs focus:outline-none focus:border-blue-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <option v-for="option in speedOptions" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
     </div>
 
     <!-- Control Buttons -->
