@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { BlackHoleEngine } from '../engine/BlackHoleEngine'
+import { createUnits } from '../engine/units'
 import Controls from './Controls.vue'
 import SimulationControls from './SimulationControls.vue'
 
@@ -22,12 +23,23 @@ const engine = ref<BlackHoleEngine>(new BlackHoleEngine({
   nObserver: props.nObserver,
 }))
 
+// Current simulation time (tau)
+const currentTau = ref<number>(0)
+
+// Get tauMax from engine
+const tauMax = computed(() => engine.value.tauMax)
+
+// Get units for time conversion
+const units = computed(() => createUnits(props.mass))
+
 // Recreate engine when config changes
 watch([() => props.nFaller, () => props.nObserver], () => {
   engine.value = new BlackHoleEngine({
     nFaller: props.nFaller,
     nObserver: props.nObserver,
   })
+  // Reset currentTau when engine is recreated
+  currentTau.value = 0
 })
 
 function updateMass(value: number) {
@@ -40,6 +52,22 @@ function updateFaller(value: number) {
 
 function updateObserver(value: number) {
   emit('update:nObserver', value)
+}
+
+function updateCurrentTau(value: number) {
+  currentTau.value = value
+}
+
+function startSimulation() {
+  // TODO: start animation
+}
+
+function stopSimulation() {
+  // TODO: stop animation
+}
+
+function resetSimulation() {
+  currentTau.value = 0
 }
 </script>
 
@@ -65,7 +93,15 @@ function updateObserver(value: number) {
       <div class="px-5 pb-5 border-t border-white/5">
         <div class="pt-4">
           <h2 class="text-[12px] font-medium text-gray-400 mb-3 uppercase tracking-widest">Simulation</h2>
-          <SimulationControls />
+          <SimulationControls
+            :tau-max="tauMax"
+            :current-tau="currentTau"
+            :tau-to-seconds="units.tauToSeconds"
+            @update:current-tau="updateCurrentTau"
+            @start="startSimulation"
+            @stop="stopSimulation"
+            @reset="resetSimulation"
+          />
         </div>
       </div>
     </div>

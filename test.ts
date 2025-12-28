@@ -2,11 +2,11 @@ import { BlackHoleEngine } from "./src/engine/BlackHoleEngine";
 import { createUnits } from "./src/engine/units";
 import { nToRadius } from "./src/engine/physics";
 
-let units = createUnits(4_000_000)
+let units = createUnits(10)
 
 let engine = new BlackHoleEngine({
-  nFaller: 0,      // starts 1×rs above horizon (r = 2rs)
-  nObserver: -1,   // observer 10×rs above horizon (r = 11rs)
+  nFaller: -7,      // starts 1×rs above horizon (r = 2rs)
+  nObserver: -8,   // observer 10×rs above horizon (r = 11rs)
 });
 
 let rObserver = nToRadius(engine.cfg.nObserver);  // 11
