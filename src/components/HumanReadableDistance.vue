@@ -63,8 +63,8 @@ const approximateExample = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col">
-    <span class="font-mono text-indigo-300">{{ formattedDistance }}</span>
-    <span class="text-xs text-slate-500">{{ approximateExample }}</span>
+  <div class="flex flex-col items-end">
+    <span class="font-mono text-blue-400 text-xs">{{ formattedDistance }}</span>
+    <span v-if="approximateExample" class="text-[12px] text-gray-500">{{ approximateExample }}</span>
   </div>
 </template>

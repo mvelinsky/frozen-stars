@@ -5,8 +5,8 @@ import Controls from './components/Controls.vue'
 
 // Configuration
 const mass = ref<number>(10)
-const nFaller = ref<number>(0)
-const nObserver = ref<number>(-1)
+const nFaller = ref<number>(-7)
+const nObserver = ref<number>(-8)
 
 // Engine instance
 const engine = ref<BlackHoleEngine>(new BlackHoleEngine({
@@ -24,32 +24,19 @@ watch([nFaller, nObserver], () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#0f0f1a] text-gray-100">
-    <div class="max-w-6xl mx-auto px-4 py-8">
-      <header class="mb-8">
-        <h1 class="text-3xl font-bold text-center mb-2">
-          Black Hole Frozen Star Visualization
-        </h1>
-        <p class="text-center text-gray-400 text-sm max-w-2xl mx-auto">
-          Objects never appear to cross the event horizon from an external observer's perspective
-        </p>
-      </header>
+  <div class="h-screen bg-[#0a0a12] text-gray-100 flex">
+    <!-- Controls Sidebar -->
+    <div class="w-80 h-full bg-[#0f0f18] border-r border-white/5 flex flex-col">
+      <Controls
+        v-model:mass="mass"
+        v-model:nFaller="nFaller"
+        v-model:nObserver="nObserver"
+      />
+    </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Controls Sidebar -->
-        <div class="lg:col-span-1">
-          <Controls
-            v-model:mass="mass"
-            v-model:nFaller="nFaller"
-            v-model:nObserver="nObserver"
-          />
-        </div>
-
-        <!-- Visualization Area -->
-        <div class="lg:col-span-2 bg-[#1a1a2e] rounded-xl p-6 min-h-[500px]">
-          <p class="text-gray-500 text-center">Visualization coming soon...</p>
-        </div>
-      </div>
+    <!-- Visualization Area -->
+    <div class="flex-1 bg-[#0a0a12]">
+      <p class="text-gray-600 text-sm">Visualization</p>
     </div>
   </div>
 </template>
