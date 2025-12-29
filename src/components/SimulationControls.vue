@@ -44,27 +44,37 @@ function nTauToTau(n: number, tauMax: number): number {
   return tauMax * (1 - fraction)
 }
 
+// Track whether we just made a local update (to avoid round-trip precision loss)
+let skipNextPropUpdate = false
+
 // Initialize n_tau from currentTau
 watch(() => props.currentTau, (newTau) => {
   // Only update from prop if not running (during animation we control it)
-  if (!isRunning.value) {
-    currentNTau.value = tauToNTau(newTau, props.tauMax)
+  // and if we didn't just make a local update (avoid round-trip precision loss)
+  if (!isRunning.value && !skipNextPropUpdate) {
+    const computedNTau = tauToNTau(newTau, props.tauMax)
+    // Only update if the computed value is finite and significantly different
+    // This prevents precision loss at extreme nTau values where tau ≈ tauMax
+    if (isFinite(computedNTau) || !isFinite(currentNTau.value)) {
+      currentNTau.value = computedNTau
+    }
   }
+  skipNextPropUpdate = false
 }, { immediate: true })
+
+// Helper to emit nTau update while preventing watcher from overriding
+function emitNTauUpdate(nTau: number) {
+  skipNextPropUpdate = true
+  emit('update:currentNTau', nTau)
+}
 
 type SpeedOption = { value: string; label: string; secondsPerTick: number; getNTauDelta: () => number }
 
 const speedOptions: SpeedOption[] = [
-  { value: '1e-40s', label: '10⁻⁴⁰s/tick (10⁻⁴⁰s)', secondsPerTick: 1e-40, getNTauDelta: () => computeNTauDelta(1e-40) },
-  { value: '1e-39s', label: '10⁻³⁹s/tick (10⁻³⁹s)', secondsPerTick: 1e-39, getNTauDelta: () => computeNTauDelta(1e-39) },
-  { value: '1e-38s', label: '10⁻³⁸s/tick (10⁻³⁸s)', secondsPerTick: 1e-38, getNTauDelta: () => computeNTauDelta(1e-38) },
-  { value: '1e-37s', label: '10⁻³⁷s/tick (10⁻³⁷s)', secondsPerTick: 1e-37, getNTauDelta: () => computeNTauDelta(1e-37) },
-  { value: '1e-36s', label: '10⁻³⁶s/tick (10⁻³⁶s)', secondsPerTick: 1e-36, getNTauDelta: () => computeNTauDelta(1e-36) },
-  { value: '1e-35s', label: '10⁻³⁵s/tick (10⁻³⁵s)', secondsPerTick: 1e-35, getNTauDelta: () => computeNTauDelta(1e-35) },
-  { value: '1e-34s', label: '10⁻³⁴s/tick (10⁻³⁴s)', secondsPerTick: 1e-34, getNTauDelta: () => computeNTauDelta(1e-34) },
-  { value: '1e-33s', label: '10⁻³³s/tick (10⁻³³s)', secondsPerTick: 1e-33, getNTauDelta: () => computeNTauDelta(1e-33) },
-  { value: '1e-32s', label: '10⁻³²s/tick (10⁻³²s)', secondsPerTick: 1e-32, getNTauDelta: () => computeNTauDelta(1e-32) },
-  { value: '1e-31s', label: '10⁻³¹s/tick (10⁻³¹s)', secondsPerTick: 1e-31, getNTauDelta: () => computeNTauDelta(1e-31) },
+  { value: '1e-42s', label: '10⁻42s/tick (10⁻⁴⁰s)', secondsPerTick: 1e-42, getNTauDelta: () => computeNTauDelta(1e-42) },
+  { value: '1e-39s', label: '10⁻39s/tick (10⁻³⁹s)', secondsPerTick: 1e-39, getNTauDelta: () => computeNTauDelta(1e-39) },
+  { value: '1e-36s', label: '10⁻36s/tick (10⁻³⁶s)', secondsPerTick: 1e-36, getNTauDelta: () => computeNTauDelta(1e-36) },
+  { value: '1e-33s', label: '10⁻33s/tick (10⁻³³s)', secondsPerTick: 1e-33, getNTauDelta: () => computeNTauDelta(1e-33) },
   { value: '1qs', label: '1qs/tick (quectosecond, 10⁻³⁰s)', secondsPerTick: 1e-30, getNTauDelta: () => computeNTauDelta(1e-30) },
   { value: '1rs', label: '1rs/tick (rontosecond, 10⁻²⁷s)', secondsPerTick: 1e-27, getNTauDelta: () => computeNTauDelta(1e-27) },
   { value: '1ys', label: '1ys/tick (yoctosecond, 10⁻²⁴s)', secondsPerTick: 1e-24, getNTauDelta: () => computeNTauDelta(1e-24) },
@@ -87,13 +97,10 @@ const speedOptions: SpeedOption[] = [
 ]
 
 // Compute the n_tau increment for a given time delta in seconds
+// Using log-space arithmetic to avoid precision loss at extreme scales
 function computeNTauDelta(secondsDelta: number): number {
+  // Convert seconds to tau units
   const tauDelta = secondsDelta / props.tauToSeconds(1)
-
-  // Convert tau delta to n_tau delta using derivative at current point
-  // tau = tauMax * (1 - 10^(-n))
-  // d(tau)/dn = tauMax * ln(10) * 10^(-n)
-  // dn = d(tau) / (d(tau)/dn) = d(tau) / (tauMax * ln(10) * 10^(-n))
 
   if (currentNTau.value <= 0) {
     // At start, use linear approximation
@@ -101,9 +108,37 @@ function computeNTauDelta(secondsDelta: number): number {
     return tauDelta / derivative
   }
 
-  const tenToMinusN = Math.pow(10, -currentNTau.value)
-  const derivative = props.tauMax * Math.LN10 * tenToMinusN
-  return tauDelta / derivative
+  // We want: newN such that tau(newN) = tau(currentN) + tauDelta
+  // tau = tauMax * (1 - 10^(-n))
+  // tau(currentN) + tauDelta = tauMax * (1 - 10^(-newN))
+  // 10^(-newN) = 1 - (tau(currentN) + tauDelta) / tauMax
+  //            = (tauMax - tau(currentN) - tauDelta) / tauMax
+  //            = 10^(-currentN) - tauDelta / tauMax
+  //
+  // Problem: this subtraction loses precision when both terms are tiny.
+  // Solution: work with the ratio tauDelta / (tauMax * 10^(-n))
+  //
+  // Let x = tauDelta / (tauMax * 10^(-n))
+  // Then: 10^(-newN) = 10^(-n) * (1 - x)
+  //       newN = n - log10(1 - x)
+  //       delta = -log10(1 - x)
+  //
+  // For small x: -log10(1-x) ≈ x / ln(10)
+
+  const x = tauDelta / (props.tauMax * Math.pow(10, -currentNTau.value))
+
+  if (x >= 1) {
+    // Step would cross or reach horizon
+    return 100 - currentNTau.value
+  }
+
+  if (x < 1e-10) {
+    // Use Taylor approximation for small x: -log10(1-x) ≈ x / ln(10)
+    return x / Math.LN10
+  }
+
+  // General case
+  return -Math.log10(1 - x)
 }
 
 const progress = computed(() => {
@@ -167,42 +202,54 @@ function animate(currentTime: number) {
 
   if (elapsed >= FRAME_INTERVAL) {
     const option = speedOptions.find(o => o.value === selectedSpeed.value)
-    if (option) {
-      // Calculate the stop point in n_tau (exactly 1 tick before horizon)
-      let stopNTau: number
-      if (stopOneTickBefore.value) {
-        if (option.value === '1min') {
-          stopNTau = 20
-        } else {
-          // Direct log calculation to avoid floating-point precision loss
-          const tauPerTick = option.secondsPerTick / props.tauToSeconds(1)
-          if (tauPerTick >= props.tauMax) {
-            stop()
-            return
-          }
-          stopNTau = Math.log10(props.tauMax / tauPerTick)
-        }
-      } else {
-        stopNTau = 100
-      }
-
-      const nTauDelta = option.getNTauDelta()
-      let newNTau = currentNTau.value + nTauDelta
-
-      // Check if we've reached or passed the stopping point
-      if (newNTau >= stopNTau || !isFinite(newNTau)) {
-        // Take final step to exactly the stop point
-        if (currentNTau.value < stopNTau) {
-          currentNTau.value = stopNTau
-          emit('update:currentNTau', stopNTau)
-        }
-        stop()
-        return
-      }
-
-      currentNTau.value = newNTau
-      emit('update:currentNTau', newNTau)  // Emit n_tau directly
+    if (!option) {
+      console.warn('animate: no option found for', selectedSpeed.value)
+      stop()
+      return
     }
+
+    // Calculate the stop point in n_tau (exactly 1 tick before horizon)
+    let stopNTau: number
+    if (stopOneTickBefore.value) {
+      if (option.value === '1min') {
+        stopNTau = 20
+      } else {
+        // Direct log calculation to avoid floating-point precision loss
+        const tauPerTick = option.secondsPerTick / props.tauToSeconds(1)
+        if (tauPerTick >= props.tauMax) {
+          console.warn('animate: tauPerTick >= tauMax', tauPerTick, props.tauMax)
+          stop()
+          return
+        }
+        stopNTau = Math.log10(props.tauMax / tauPerTick)
+      }
+    } else {
+      stopNTau = 100
+    }
+
+    const nTauDelta = option.getNTauDelta()
+
+    if (!isFinite(nTauDelta) || nTauDelta <= 0) {
+      console.warn('animate: invalid nTauDelta', nTauDelta, 'at currentNTau', currentNTau.value)
+      stop()
+      return
+    }
+
+    let newNTau = currentNTau.value + nTauDelta
+
+    // Check if we've reached or passed the stopping point
+    if (newNTau >= stopNTau || !isFinite(newNTau)) {
+      // Take final step to exactly the stop point
+      if (currentNTau.value < stopNTau) {
+        currentNTau.value = stopNTau
+        emitNTauUpdate(stopNTau)
+      }
+      stop()
+      return
+    }
+
+    currentNTau.value = newNTau
+    emitNTauUpdate(newNTau)
     lastTime = currentTime
   }
 
@@ -228,30 +275,41 @@ function stop() {
 
 function step() {
   const option = speedOptions.find(o => o.value === selectedSpeed.value)
-  if (!option) return
-
-  // Calculate the stop point in n_tau (exactly 1 tick before horizon)
-  let stopNTau: number
-  if (stopOneTickBefore.value) {
-    if (option.value === '1min') {
-      stopNTau = 20
-    } else {
-      // Direct log calculation to avoid floating-point precision loss
-      const tauPerTick = option.secondsPerTick / props.tauToSeconds(1)
-      if (tauPerTick >= props.tauMax) return
-      stopNTau = Math.log10(props.tauMax / tauPerTick)
-    }
-  } else {
-    stopNTau = 100
+  if (!option) {
+    console.warn('step: no option found for', selectedSpeed.value)
+    return
   }
 
-  // Check if we've already reached the stop point
+  // Calculate the stop point in n_tau
+  // For stepping, we always allow stepping up to 1 tick before horizon at current timescale
+  // (independent of the checkbox, which only affects continuous animation)
+  let stopNTau: number
+  if (option.value === '1min') {
+    stopNTau = 20
+  } else {
+    // Direct log calculation to avoid floating-point precision loss
+    const tauPerTick = option.secondsPerTick / props.tauToSeconds(1)
+    if (tauPerTick >= props.tauMax) {
+      console.warn('step: tauPerTick >= tauMax', tauPerTick, props.tauMax)
+      return
+    }
+    stopNTau = Math.log10(props.tauMax / tauPerTick)
+  }
+
+  // Check if we've already reached the stop point for this timescale
   if (currentNTau.value >= stopNTau) {
+    console.warn('step: already at stop point', currentNTau.value, '>=', stopNTau)
     return
   }
 
   // Calculate the n_tau delta for one tick of proper time
   const nTauDelta = option.getNTauDelta()
+
+  if (!isFinite(nTauDelta) || nTauDelta <= 0) {
+    console.warn('step: invalid nTauDelta', nTauDelta)
+    return
+  }
+
   let newNTau = currentNTau.value + nTauDelta
 
   // Clamp to stop point if we would overshoot
@@ -260,14 +318,14 @@ function step() {
   }
 
   currentNTau.value = newNTau
-  emit('update:currentNTau', newNTau)
+  emitNTauUpdate(newNTau)
 }
 
 function onSliderInput(event: Event) {
   const value = Number((event.target as HTMLInputElement).value)
   const newTau = (value / 100) * props.tauMax
   currentNTau.value = tauToNTau(newTau, props.tauMax)
-  emit('update:currentNTau', currentNTau.value)  // Emit n_tau directly
+  emitNTauUpdate(currentNTau.value)
 }
 
 function skipToEnd() {
@@ -298,7 +356,7 @@ function skipToEnd() {
   // Only update if moving forward
   if (stopNTau > currentNTau.value) {
     currentNTau.value = stopNTau
-    emit('update:currentNTau', currentNTau.value)
+    emitNTauUpdate(currentNTau.value)
   }
   emit('skipToEnd')
 }
