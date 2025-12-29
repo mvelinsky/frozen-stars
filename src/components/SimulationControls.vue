@@ -71,6 +71,10 @@ function emitNTauUpdate(nTau: number) {
 type SpeedOption = { value: string; label: string; secondsPerTick: number; getNTauDelta: () => number }
 
 const speedOptions: SpeedOption[] = [
+  { value: '1e-54s', label: '10⁻54s/tick (10⁻⁴⁰s)', secondsPerTick: 1e-54, getNTauDelta: () => computeNTauDelta(1e-54) },
+  { value: '1e-51s', label: '10⁻51s/tick (10⁻⁴⁰s)', secondsPerTick: 1e-51, getNTauDelta: () => computeNTauDelta(1e-51) },
+  { value: '1e-48s', label: '10⁻48s/tick (10⁻⁴⁰s)', secondsPerTick: 1e-48, getNTauDelta: () => computeNTauDelta(1e-48) },
+  { value: '1e-45s', label: '10⁻45s/tick (10⁻⁴⁰s)', secondsPerTick: 1e-45, getNTauDelta: () => computeNTauDelta(1e-45) },
   { value: '1e-42s', label: '10⁻42s/tick (10⁻⁴⁰s)', secondsPerTick: 1e-42, getNTauDelta: () => computeNTauDelta(1e-42) },
   { value: '1e-39s', label: '10⁻39s/tick (10⁻³⁹s)', secondsPerTick: 1e-39, getNTauDelta: () => computeNTauDelta(1e-39) },
   { value: '1e-36s', label: '10⁻36s/tick (10⁻³⁶s)', secondsPerTick: 1e-36, getNTauDelta: () => computeNTauDelta(1e-36) },
