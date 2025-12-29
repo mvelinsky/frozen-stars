@@ -92,7 +92,7 @@ const speedOptions: SpeedOption[] = [
   { value: '1d', label: '1d/tick (day, 86400s)', secondsPerTick: 86400, getNTauDelta: () => computeNTauDelta(86400) },
   { value: '1min', label: 'Complete in 1min', secondsPerTick: 0, getNTauDelta: () => {
     const totalTicks = 60 * TARGET_FPS
-    const finalNTau = 20  // Cap at n_tau = 20 (tau = tauMax * 0.999999999999999999)
+    const finalNTau = 100  // Cap at n_tau = 20 (tau = tauMax * 0.999999999999999999)
     return finalNTau / totalTicks
   }},
 ]
@@ -183,7 +183,7 @@ function animate(currentTime: number) {
 
       // Calculate the stopping point based on checkbox
       // n_tau = 20 is effectively tauMax (infinity in practical terms)
-      const stopPoint = stopOneTickBefore.value ? 20 - nTauDelta : 20
+      const stopPoint = stopOneTickBefore.value ? 100 - nTauDelta : 100
 
       // Increment n_tau logarithmically
       const newNTau = currentNTau.value + nTauDelta
@@ -237,25 +237,18 @@ function onSliderInput(event: Event) {
 }
 
 function skipToEnd() {
+  // Run animation at high speed until we hit the stopping point
+  // This ensures consistency with "Stop 1 tick before horizon" behavior
+
   const option = speedOptions.find(o => o.value === selectedSpeed.value)
   if (!option) return
 
-  // For "Complete in 1min", jump to n_tau = 19.9 (very close to end)
-  if (option.value === '1min') {
-    currentNTau.value = 19.9
-    emit('update:currentNTau', 19.9)  // Emit n_tau directly
-    emit('skipToEnd')
-    return
-  }
+  const nTauDelta = option.getNTauDelta()
+  const stopPoint = stopOneTickBefore.value ? 100 - nTauDelta : 100
 
-  // For other speeds: jump to position one tick before end
-  const secondsPerTick = option.secondsPerTick
-  const tauDelta = secondsPerTick / props.tauToSeconds(1)
-  const targetTau = Math.max(0, props.tauMax - tauDelta)
-  const targetNTau = tauToNTau(targetTau, props.tauMax)
-
-  currentNTau.value = targetNTau
-  emit('update:currentNTau', targetNTau)  // Emit n_tau directly
+  // Jump directly to the stop point (with small margin to avoid going over)
+  currentNTau.value = Math.max(currentNTau.value, stopPoint * 0.999)
+  emit('update:currentNTau', currentNTau.value)
   emit('skipToEnd')
 }
 
