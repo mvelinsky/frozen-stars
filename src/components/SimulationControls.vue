@@ -168,19 +168,34 @@ function animate(currentTime: number) {
   if (elapsed >= FRAME_INTERVAL) {
     const option = speedOptions.find(o => o.value === selectedSpeed.value)
     if (option) {
+      // Calculate the stop point in n_tau (exactly 1 tick before horizon)
+      let stopNTau: number
+      if (stopOneTickBefore.value) {
+        if (option.value === '1min') {
+          stopNTau = 20
+        } else {
+          // Direct log calculation to avoid floating-point precision loss
+          const tauPerTick = option.secondsPerTick / props.tauToSeconds(1)
+          if (tauPerTick >= props.tauMax) {
+            stop()
+            return
+          }
+          stopNTau = Math.log10(props.tauMax / tauPerTick)
+        }
+      } else {
+        stopNTau = 100
+      }
+
       const nTauDelta = option.getNTauDelta()
-
-      // Calculate the stopping point based on checkbox
-      // n_tau = 20 is effectively tauMax (infinity in practical terms)
-      const stopPoint = stopOneTickBefore.value ? 100 - nTauDelta : 100
-
-      // Increment n_tau logarithmically
-      const newNTau = currentNTau.value + nTauDelta
+      let newNTau = currentNTau.value + nTauDelta
 
       // Check if we've reached or passed the stopping point
-      if (newNTau >= stopPoint || !isFinite(newNTau)) {
-        // currentNTau.value = Math.min(newNTau, stopPoint)
-        // emit('update:currentNTau', currentNTau.value)
+      if (newNTau >= stopNTau || !isFinite(newNTau)) {
+        // Take final step to exactly the stop point
+        if (currentNTau.value < stopNTau) {
+          currentNTau.value = stopNTau
+          emit('update:currentNTau', stopNTau)
+        }
         stop()
         return
       }
@@ -215,17 +230,33 @@ function step() {
   const option = speedOptions.find(o => o.value === selectedSpeed.value)
   if (!option) return
 
-  const nTauDelta = option.getNTauDelta()
+  // Calculate the stop point in n_tau (exactly 1 tick before horizon)
+  let stopNTau: number
+  if (stopOneTickBefore.value) {
+    if (option.value === '1min') {
+      stopNTau = 20
+    } else {
+      // Direct log calculation to avoid floating-point precision loss
+      const tauPerTick = option.secondsPerTick / props.tauToSeconds(1)
+      if (tauPerTick >= props.tauMax) return
+      stopNTau = Math.log10(props.tauMax / tauPerTick)
+    }
+  } else {
+    stopNTau = 100
+  }
 
-  // Calculate the stopping point based on checkbox
-  const stopPoint = stopOneTickBefore.value ? 100 - nTauDelta : 100
-
-  // Increment n_tau by one tick
-  const newNTau = currentNTau.value + nTauDelta
-
-  // Check if we've reached or passed the stopping point
-  if (newNTau >= stopPoint || !isFinite(newNTau)) {
+  // Check if we've already reached the stop point
+  if (currentNTau.value >= stopNTau) {
     return
+  }
+
+  // Calculate the n_tau delta for one tick of proper time
+  const nTauDelta = option.getNTauDelta()
+  let newNTau = currentNTau.value + nTauDelta
+
+  // Clamp to stop point if we would overshoot
+  if (newNTau > stopNTau || !isFinite(newNTau)) {
+    newNTau = stopNTau
   }
 
   currentNTau.value = newNTau
@@ -240,18 +271,35 @@ function onSliderInput(event: Event) {
 }
 
 function skipToEnd() {
-  // Run animation at high speed until we hit the stopping point
-  // This ensures consistency with "Stop 1 tick before horizon" behavior
-
   const option = speedOptions.find(o => o.value === selectedSpeed.value)
   if (!option) return
 
-  const nTauDelta = option.getNTauDelta()
-  const stopPoint = stopOneTickBefore.value ? 100 - nTauDelta : 100
+  let stopNTau: number
 
-  // Jump directly to the stop point (with small margin to avoid going over)
-  currentNTau.value = Math.max(currentNTau.value, stopPoint * 0.999)
-  emit('update:currentNTau', currentNTau.value)
+  // Skip to End always stops exactly 1 tick of the selected timescale before horizon
+  if (option.value === '1min') {
+    // For "complete in 1min" mode, use a fixed margin
+    stopNTau = 20
+  } else {
+    // Calculate stop point as exactly 1 tick of proper time before horizon
+    // We compute directly in log space to avoid floating-point precision loss
+    // stopNTau = log10(tauMax / tauPerTick)
+    const tauPerTick = option.secondsPerTick / props.tauToSeconds(1)
+
+    if (tauPerTick >= props.tauMax) {
+      // The tick is larger than the entire simulation, can't skip meaningfully
+      return
+    }
+
+    // Direct log calculation avoids precision loss from (tauMax - tiny) = tauMax
+    stopNTau = Math.log10(props.tauMax / tauPerTick)
+  }
+
+  // Only update if moving forward
+  if (stopNTau > currentNTau.value) {
+    currentNTau.value = stopNTau
+    emit('update:currentNTau', currentNTau.value)
+  }
   emit('skipToEnd')
 }
 
