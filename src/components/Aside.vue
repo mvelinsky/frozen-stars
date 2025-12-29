@@ -66,9 +66,14 @@ function stopSimulation() {
   // TODO: stop animation
 }
 
-function resetSimulation() {
+// Reset currentNTau when engine is recreated
+watch([() => props.nFaller, () => props.nObserver], () => {
+  engine.value = new BlackHoleEngine({
+    nFaller: props.nFaller,
+    nObserver: props.nObserver,
+  })
   emit('update:currentNTau', 0)
-}
+})
 </script>
 
 <template>
@@ -100,7 +105,6 @@ function resetSimulation() {
             @update:current-n-tau="updateCurrentNTau"
             @start="startSimulation"
             @stop="stopSimulation"
-            @reset="resetSimulation"
           />
         </div>
       </div>

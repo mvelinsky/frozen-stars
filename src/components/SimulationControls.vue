@@ -12,12 +12,11 @@ const emit = defineEmits<{
   'update:currentNTau': [value: number]  // Logarithmic time coordinate
   'start': []
   'stop': []
-  'reset': []
   'skipToEnd': []
 }>()
 
 const isRunning = ref<boolean>(false)
-const selectedSpeed = ref<string>('1s')
+const selectedSpeed = ref<string>('1us')
 const stopOneTickBefore = ref<boolean>(false)
 
 const TARGET_FPS = 30
@@ -222,11 +221,25 @@ function stop() {
   emit('stop')
 }
 
-function reset() {
-  stop()
-  currentNTau.value = 0
-  emit('update:currentNTau', 0)  // n_tau = 0
-  emit('reset')
+function step() {
+  const option = speedOptions.find(o => o.value === selectedSpeed.value)
+  if (!option) return
+
+  const nTauDelta = option.getNTauDelta()
+
+  // Calculate the stopping point based on checkbox
+  const stopPoint = stopOneTickBefore.value ? 100 - nTauDelta : 100
+
+  // Increment n_tau by one tick
+  const newNTau = currentNTau.value + nTauDelta
+
+  // Check if we've reached or passed the stopping point
+  if (newNTau >= stopPoint || !isFinite(newNTau)) {
+    return
+  }
+
+  currentNTau.value = newNTau
+  emit('update:currentNTau', newNTau)
 }
 
 function onSliderInput(event: Event) {
@@ -333,10 +346,11 @@ onUnmounted(() => {
         Skip to End
       </button>
       <button
-        @click="reset"
-        class="flex-1 px-3 py-1.5 text-xs font-medium bg-white/5 text-gray-400 border border-white/10 rounded hover:bg-white/10 transition-colors"
+        @click="step"
+        :disabled="isRunning"
+        class="flex-1 px-3 py-1.5 text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30 rounded hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        Reset
+        Step
       </button>
     </div>
 

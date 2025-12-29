@@ -4,6 +4,7 @@ import { BlackHoleEngine } from './engine/BlackHoleEngine'
 import { createUnits } from './engine/units'
 import { timeScales } from './engine/timescales'
 import Aside from './components/Aside.vue'
+import DistanceToHorizon from './components/DistanceToHorizon.vue'
 
 // Configuration
 const mass = ref<number>(10)
@@ -79,12 +80,13 @@ const observerTimeReference = computed(() => getTimeScaleReference(currentState.
         <div class="flex-1">
           <h3 class="text-sm text-gray-500 mb-2 uppercase tracking-widest">Faller Proper Time</h3>
           <p class="font-mono text-3xl text-blue-400">{{ formatTime(currentState.object1.tau) }}</p>
+          <p class="text-gray-500 mt-2">Distance to horizon: <DistanceToHorizon :solar-mass="mass" :n="currentState.object1.n" /></p>
         </div>
         <!-- Observer -->
         <div class="flex-1">
           <h3 class="text-sm text-gray-500 mb-2 uppercase tracking-widest">Observer Proper Time</h3>
           <p class="font-mono text-3xl text-blue-400">{{ formatTime(currentState.object2.tau) }}</p>
-          <p v-if="observerTimeReference" class="text-gray-400 mt-1">{{ observerTimeReference }}</p>
+          <p v-if="observerTimeReference" class="text-gray-400 mt-2">{{ observerTimeReference }}</p>
         </div>
       </div>
 
