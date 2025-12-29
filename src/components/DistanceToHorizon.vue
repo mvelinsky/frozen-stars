@@ -26,26 +26,41 @@ function formatDistance(meters: number): string {
   const planckLength = 1.616e-35
   const plancks = meters / planckLength
 
-  // Extreme sub-Planck scales (probably unphysical)
+  // Sub-Planck scales (probably unphysical)
   if (plancks < 1e-20) {
     return `${plancks.toExponential(2)} lP (vastly sub-Planck)`
   }
-
-  // Sub-Planck to super-Planck
   if (plancks < 0.01) {
     return `${plancks.toExponential(2)} lP (sub-Planck)`
   }
-  if (plancks < 10) {
-    return `${plancks.toFixed(3)} lP (near Planck scale)`
-  }
-  if (plancks < 1000) {
-    return `${plancks.toFixed(2)} lP`
-  }
-  if (plancks < 1e6) {
-    return `${(plancks / 1e3).toFixed(2)}k lP (super-Planck)`
+  if (plancks < 1) {
+    return `${plancks.toFixed(3)} lP (sub-Planck)`
   }
 
-  // Subatomic scale
+  // Planck to super-Planck (up to ~femtometer scale, since 1e20 lP ≈ 1.6 fm)
+  if (plancks < 10) {
+    return `${plancks.toFixed(2)} lP (Planck scale)`
+  }
+  if (plancks < 1e3) {
+    return `${plancks.toFixed(1)} lP`
+  }
+  if (plancks < 1e6) {
+    return `${(plancks / 1e3).toFixed(2)}k lP`
+  }
+  if (plancks < 1e9) {
+    return `${(plancks / 1e6).toFixed(2)}M lP`
+  }
+  if (plancks < 1e12) {
+    return `${(plancks / 1e9).toFixed(2)}G lP`
+  }
+  if (plancks < 1e15) {
+    return `${(plancks / 1e12).toFixed(2)}T lP`
+  }
+  if (plancks < 1e18) {
+    return `${(plancks / 1e15).toFixed(2)}P lP (subatomic)`
+  }
+
+  // Subatomic scale (attometer and above - now we have enough precision)
   if (meters < 1e-18) return `${(meters * 1e18).toFixed(2)} am (subatomic)`
   if (meters < 1e-15) return `${(meters * 1e15).toFixed(2)} fm (nuclear scale)`
 
