@@ -5,6 +5,7 @@ import { createUnits } from './engine/units'
 import { timeScales } from './engine/timescales'
 import Aside from './components/Aside.vue'
 import DistanceToHorizon from './components/DistanceToHorizon.vue'
+import Visualization from './components/Visualization.vue'
 
 // Configuration
 const mass = ref<number>(10)
@@ -91,9 +92,12 @@ const observerTimeReference = computed(() => getTimeScaleReference(currentState.
       </div>
 
       <!-- Main Visualization -->
-      <div class="flex-1 flex items-center justify-center">
-        <p class="text-gray-600 text-sm">Visualization</p>
-      </div>
+      <Visualization
+        :solar-mass="mass"
+        :n-faller="nFaller"
+        :n-observer="nObserver"
+        :n-current-faller="currentState.object1.n"
+      />
     </div>
   </div>
 </template>
