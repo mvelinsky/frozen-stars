@@ -39,25 +39,30 @@ function formatDistance(meters: number): string {
 
   // Planck to super-Planck (up to ~femtometer scale, since 1e20 lP ≈ 1.6 fm)
   if (plancks < 10) {
-    return `${plancks.toFixed(2)} lP (Planck scale)`
+    return `${plancks.toFixed(2)} Planck-lengths (quantum gravity scale)`
   }
   if (plancks < 1e3) {
-    return `${plancks.toFixed(1)} lP`
+    return `${plancks.toFixed(1)} Planck-lengths (string theory scale)`
   }
   if (plancks < 1e6) {
-    return `${(plancks / 1e3).toFixed(2)}k lP`
+    // ~1.6e-32 to 1.6e-29 m - grand unification energy scale
+    return `${(plancks / 1e3).toFixed(2)} thousand Planck-lengths (GUT scale)`
   }
   if (plancks < 1e9) {
-    return `${(plancks / 1e6).toFixed(2)}M lP`
+    // ~1.6e-29 to 1.6e-26 m - 10 trillion times smaller than a proton
+    return `${(plancks / 1e6).toFixed(2)} million Planck-lengths (10 trillion× smaller than proton)`
   }
   if (plancks < 1e12) {
-    return `${(plancks / 1e9).toFixed(2)}G lP`
+    // ~1.6e-26 to 1.6e-23 m - 10 billion times smaller than a proton
+    return `${(plancks / 1e9).toFixed(2)} billion Planck-lengths (10 billion× smaller than proton)`
   }
   if (plancks < 1e15) {
-    return `${(plancks / 1e12).toFixed(2)}T lP`
+    // ~1.6e-23 to 1.6e-20 m - approaching electroweak scale
+    return `${(plancks / 1e12).toFixed(2)} trillion Planck-lengths (10,000× smaller than a proton)`
   }
   if (plancks < 1e18) {
-    return `${(plancks / 1e15).toFixed(2)}P lP (subatomic)`
+    // ~1.6e-20 to 1.6e-17 m - electroweak/W boson wavelength scale
+    return `${(plancks / 1e15).toFixed(2)} quadrillion Planck-lengths (electroweak scale)`
   }
 
   // Subatomic scale (attometer and above - now we have enough precision)

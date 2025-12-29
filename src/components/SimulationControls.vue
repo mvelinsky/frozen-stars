@@ -18,6 +18,7 @@ const emit = defineEmits<{
 const isRunning = ref<boolean>(false)
 const selectedSpeed = ref<string>('1us')
 const stopOneTickBefore = ref<boolean>(false)
+const autoDownscale = ref<boolean>(false)
 
 const TARGET_FPS = 30
 const FRAME_INTERVAL = 1000 / TARGET_FPS
@@ -99,6 +100,16 @@ const speedOptions: SpeedOption[] = [
     return finalNTau / totalTicks
   }},
 ]
+
+// Find the next smaller timescale (previous in array since sorted smallest to largest)
+function getSmallerTimescale(currentValue: string): SpeedOption | null {
+  const currentIndex = speedOptions.findIndex(o => o.value === currentValue)
+  if (currentIndex <= 0) return null  // Already at smallest or not found
+  // Skip the '1min' option when downscaling
+  const prevOption = speedOptions[currentIndex - 1]
+  if (prevOption.value === '1min') return null
+  return prevOption
+}
 
 // Compute the n_tau increment for a given time delta in seconds
 // Using log-space arithmetic to avoid precision loss at extreme scales
@@ -248,6 +259,19 @@ function animate(currentTime: number) {
         currentNTau.value = stopNTau
         emitNTauUpdate(stopNTau)
       }
+
+      // If auto-downscale is enabled, switch to smaller timescale and continue
+      if (autoDownscale.value && stopOneTickBefore.value) {
+        const smallerOption = getSmallerTimescale(selectedSpeed.value)
+        if (smallerOption) {
+          selectedSpeed.value = smallerOption.value
+          // Continue animation with new timescale (don't stop)
+          lastTime = currentTime
+          animationFrameId = requestAnimationFrame(animate)
+          return
+        }
+      }
+
       stop()
       return
     }
@@ -302,6 +326,16 @@ function step() {
 
   // Check if we've already reached the stop point for this timescale
   if (currentNTau.value >= stopNTau) {
+    // If auto-downscale is enabled, switch to smaller timescale and continue
+    if (autoDownscale.value) {
+      const smallerOption = getSmallerTimescale(selectedSpeed.value)
+      if (smallerOption) {
+        selectedSpeed.value = smallerOption.value
+        // Recursively call step with the new timescale
+        step()
+        return
+      }
+    }
     console.warn('step: already at stop point', currentNTau.value, '>=', stopNTau)
     return
   }
@@ -463,6 +497,17 @@ onUnmounted(() => {
         class="w-3 h-3 bg-white/5 border border-white/10 rounded focus:outline-none focus:border-blue-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
       />
       <span>Stop 1 tick before horizon</span>
+    </label>
+
+    <!-- Auto-downscale Checkbox -->
+    <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+      <input
+        v-model="autoDownscale"
+        type="checkbox"
+        :disabled="isRunning"
+        class="w-3 h-3 bg-white/5 border border-white/10 rounded focus:outline-none focus:border-blue-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
+      />
+      <span>Auto-switch to smaller timescale at stop point</span>
     </label>
   </div>
 </template>
