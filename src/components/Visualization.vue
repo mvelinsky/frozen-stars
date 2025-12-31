@@ -93,15 +93,23 @@ function drawBlackHole() {
   ctx.arc(centerX, centerY, radius, startAngle, endAngle, true)
   ctx.stroke()
 
-  // Add purple glow effect at the horizon edge
-  const gradient = ctx.createRadialGradient(
-    horizonEdgeX, centerY, 0,
-    horizonEdgeX, centerY, 20
-  )
-  gradient.addColorStop(0, 'rgba(168, 85, 247, 0.1)')
-  gradient.addColorStop(1, 'rgba(168, 85, 247, 0)')
-  ctx.fillStyle = gradient
-  ctx.fillRect(horizonEdgeX - 20, centerY - 20, 40, 40)
+  // Draw the left semicircle if the center is visible (zoomed out)
+  if (centerX >= 0) {
+    // Draw filled left semicircle (angles from PI/2 through PI to 3*PI/2)
+    ctx.fillStyle = '#000000'
+    ctx.beginPath()
+    ctx.moveTo(centerX + radius * Math.cos(Math.PI / 2), centerY + radius * Math.sin(Math.PI / 2))
+    ctx.arc(centerX, centerY, radius, Math.PI / 2, 3 * Math.PI / 2, false)
+    ctx.closePath()
+    ctx.fill()
+
+    // Draw border for left semicircle
+    ctx.strokeStyle = 'rgba(107, 114, 128, 0.5)'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(centerX, centerY, radius, Math.PI / 2, 3 * Math.PI / 2, false)
+    ctx.stroke()
+  }
 }
 
 // Redraw when zoom changes
@@ -165,9 +173,9 @@ function formatDistanceFromHorizon(n: number): string {
 </script>
 
 <template>
-  <div class="w-full h-[300px] flex items-center bg-[#050508] relative overflow-hidden pl-8 pr-8">
+  <div class="w-full h-[300px] flex items-center relative overflow-hidden pl-8 pr-8">
     <!-- Distance scale grid (subtle background) -->
-    <div class="absolute inset-0 flex items-center">
+    <div class="absolute inset-0 flex items-center bg-[#1a1a2e] ml-[30px]">
       <div class="w-full h-px bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
     </div>
 
@@ -184,7 +192,7 @@ function formatDistanceFromHorizon(n: number): string {
       <!-- Distance lines and labels -->
       <!-- Faller distance line -->
       <div
-        class="absolute top-[47px] -translate-y-1/2 border-t border-dashed border-blue-400/50 flex items-center justify-center"
+        class="absolute top-[17px] -translate-y-1/2 border-t border-dashed border-blue-400/50 flex items-center justify-center"
         :style="{
           left: `${horizonEdgeX}px`,
           width: `${fallerX - horizonEdgeX}px`
@@ -196,7 +204,7 @@ function formatDistanceFromHorizon(n: number): string {
       <!-- Observer distance line -->
       <div
         v-if="isFinite(nObserver)"
-        class="absolute top-[50px] -translate-y-1/2 border-t border-dashed border-amber-400/50 flex items-center justify-center"
+        class="absolute top-[20px] -translate-y-1/2 border-t border-dashed border-amber-400/50 flex items-center justify-center"
         :style="{
           left: `${horizonEdgeX}px`,
           width: `${observerX - horizonEdgeX}px`
@@ -207,7 +215,7 @@ function formatDistanceFromHorizon(n: number): string {
 
       <!-- Faller Object -->
       <div
-        class="absolute top-[32px] -translate-y-1/2 -translate-x-1/2 z-10"
+        class="absolute top-[2px] -translate-y-1/2 -translate-x-1/2 z-10"
         :style="{ left: `${fallerX}px` }"
       >
         <div class="w-[10px] h-[10px] rounded bg-blue-400 shadow-lg shadow-blue-400/50 relative">
@@ -223,7 +231,7 @@ function formatDistanceFromHorizon(n: number): string {
       <!-- Observer Object -->
       <div
         v-if="isFinite(nObserver)"
-        class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
+        class="absolute top-[10px] -translate-y-1/2 -translate-x-1/2"
         :style="{ left: `${observerX}px` }"
       >
         <div class="w-[10px] h-[10px] rounded bg-amber-400 shadow-lg shadow-amber-400/50 relative">
@@ -238,7 +246,7 @@ function formatDistanceFromHorizon(n: number): string {
     </div>
 
     <!-- Scale info -->
-    <div class="absolute bottom-4 left-4 text-[10px] text-gray-600 font-mono">
+    <div class="absolute bottom-4 left-12 text-[10px] text-gray-600 font-mono">
       Horizon radius: {{ units.distanceToKm(1).toFixed(2) }} km
     </div>
 

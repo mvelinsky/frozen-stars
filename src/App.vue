@@ -68,7 +68,6 @@ const timeToIntercept = computed(() => {
   const state = engine.value.getStateByNTau(currentNTau.value)
   const currentObserverTau = state.object2.tau
   const delta = engine.value.getPhotonIntersectDelta(currentObserverTau)
-  console.log('intercept:', { nTau: currentNTau.value, fallerN: state.object1.n, observerTau: currentObserverTau, delta })
   return delta
 })
 
