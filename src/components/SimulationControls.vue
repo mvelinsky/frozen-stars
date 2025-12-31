@@ -475,16 +475,16 @@ onUnmounted(() => {
     <!-- Control Buttons -->
     <div class="flex gap-2">
       <button
+        v-if="!isRunning"
         @click="start"
-        :disabled="isRunning"
-        class="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded hover:bg-blue-500/30 transition-colors"
       >
         Start
       </button>
       <button
+        v-if="isRunning"
         @click="stop"
-        :disabled="!isRunning"
-        class="flex-1 px-3 py-1.5 text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="flex-1 px-3 py-1.5 text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/30 transition-colors"
       >
         Stop
       </button>
