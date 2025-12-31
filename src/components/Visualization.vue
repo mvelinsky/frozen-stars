@@ -24,7 +24,9 @@ const blackHoleCanvas = ref<HTMLCanvasElement | null>(null)
 // Zoom state
 const zoom = ref<number>(1)
 const displayedZoom = ref<number>(1)  // For animation
+const autozoom = ref<boolean>(true)
 let zoomAnimation: number | null = null
+let lastZoomThreshold = Math.floor(props.nCurrentFaller)  // Track last threshold we zoomed at
 
 function animateZoom(target: number) {
   if (zoomAnimation) {
@@ -67,7 +69,21 @@ function zoomOut() {
 function resetZoom() {
   zoom.value = 1
   animateZoom(1)
+  lastZoomThreshold = Math.floor(props.nCurrentFaller)
 }
+
+// Autozoom: watch faller position and zoom when crossing thresholds
+watch(() => props.nCurrentFaller, (newN, oldN) => {
+  if (!autozoom.value) return
+
+  const threshold = Math.floor(newN)
+
+  // Only zoom if we crossed to a new integer threshold and moving toward horizon
+  if (threshold > lastZoomThreshold && newN > oldN) {
+    lastZoomThreshold = threshold
+    zoomIn()
+  }
+})
 
 // Draw the black hole as an arc on canvas
 function drawBlackHole() {
@@ -491,6 +507,14 @@ function formatDistanceFromHorizon(n: number): string {
 
     <!-- Zoom controls -->
     <div class="absolute bottom-4 right-4 flex items-center gap-2">
+      <label class="flex items-center gap-1.5 cursor-pointer">
+        <input
+          type="checkbox"
+          v-model="autozoom"
+          class="w-3 h-3 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+        />
+        <span class="text-[10px] text-gray-500">autozoom</span>
+      </label>
       <span class="text-[10px] text-gray-600 font-mono">{{ displayedZoom.toFixed(2) }}×</span>
       <div class="flex gap-1">
         <button
