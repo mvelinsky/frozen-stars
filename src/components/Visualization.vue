@@ -196,23 +196,61 @@ const scaleRuler = computed(() => {
   const ppm = pixelsPerMeter.value
 
   // Units ordered by size (largest to smallest)
+  // All powers of 10 from AU down to Planck length
   const units = [
-    { name: 'AU', meters: 1.496e11 },
-    { name: 'km', meters: 1e3 },
-    { name: 'm', meters: 1 },
-    { name: 'dm', meters: 1e-1 },
-    { name: 'cm', meters: 1e-2 },
-    { name: 'mm', meters: 1e-3 },
-    { name: 'μm', meters: 1e-6 },
-    { name: 'nm', meters: 1e-9 },
-    { name: 'pm', meters: 1e-12 },
-    { name: 'fm', meters: 1e-15 },
-    { name: 'am', meters: 1e-18 },
-    { name: 'zm', meters: 1e-21 },
-    { name: 'ym', meters: 1e-24 },
-    { name: 'rm', meters: 1e-27 },
-    { name: 'qm', meters: 1e-30 },
-    { name: 'lP', meters: 1.616e-35 },
+    { name: '1AU', meters: 1.496e11, ref: 'Earth to Sun distance' },
+    { name: '0.1AU', meters: 1.496e10, ref: '~15 million km' },
+    { name: '0.01AU', meters: 1.496e9, ref: '~1.5 million km' },
+    { name: '0.001AU', meters: 1.496e8, ref: '~150,000 km' },
+    { name: '1e10m', meters: 1e10, ref: '10 billion m, 33× Earth to Moon' },
+    { name: '1e9m', meters: 1e9, ref: '1 billion m, 3× Earth to Moon' },
+    { name: '1e8m', meters: 1e8, ref: '100 million m' },
+    { name: '1e7m', meters: 1e7, ref: '10 million m, Earth diameter' },
+    { name: '1e6m', meters: 1e6, ref: '1 million m' },
+    { name: '1e5m', meters: 1e5, ref: '100,000 km' },
+    { name: '10000km', meters: 1e7, ref: 'Earth diameter (~12,700 km)' },
+    { name: '1000km', meters: 1e6, ref: 'Germany north to south' },
+    { name: '100km', meters: 1e5, ref: '~62 miles, 1hr drive' },
+    { name: '10km', meters: 1e4, ref: 'Marathon distance' },
+    { name: '1km', meters: 1e3, ref: '3-4 city blocks' },
+    { name: '100m', meters: 1e2, ref: 'Football field length' },
+    { name: '10m', meters: 1e1, ref: 'Bus length' },
+    { name: '1m', meters: 1, ref: 'Door height, human stride' },
+    { name: '1dm', meters: 1e-1, ref: 'Hand span' },
+    { name: '1cm', meters: 1e-2, ref: 'Fingernail width' },
+    { name: '1mm', meters: 1e-3, ref: 'Grain of sand' },
+    { name: '100μm', meters: 1e-4, ref: 'Human hair diameter' },
+    { name: '10μm', meters: 1e-5, ref: 'White blood cell' },
+    { name: '1μm', meters: 1e-6, ref: 'Bacteria size (E. coli)' },
+    { name: '100nm', meters: 1e-7, ref: 'Virus size (COVID-19: ~100nm)' },
+    { name: '10nm', meters: 1e-8, ref: 'Protein molecule, cell membrane thickness' },
+    { name: '1nm', meters: 1e-9, ref: 'DNA helix diameter' },
+    { name: '100pm', meters: 1e-10, ref: '100 picometers' },
+    { name: '10pm', meters: 1e-11, ref: 'Hydrogen atom diameter' },
+    { name: '1pm', meters: 1e-12, ref: '1 picometer, X-ray wavelength' },
+    { name: '100fm', meters: 1e-13, ref: '100 femtometers' },
+    { name: '10fm', meters: 1e-14, ref: 'Atomic nucleus size' },
+    { name: '1fm', meters: 1e-15, ref: '1 femtometer (proton radius ~0.84fm)' },
+    { name: '100am', meters: 1e-16, ref: '100 attometers' },
+    { name: '10am', meters: 1e-17, ref: '10 attometers, quark scale' },
+    { name: '1am', meters: 1e-18, ref: '1 attometer' },
+    { name: '100zm', meters: 1e-19, ref: '100 zeptometers' },
+    { name: '10zm', meters: 1e-20, ref: '10 zeptometers, neutrino interaction range' },
+    { name: '1zm', meters: 1e-21, ref: '1 zeptometer' },
+    { name: '100ym', meters: 1e-22, ref: '100 yoctometers' },
+    { name: '10ym', meters: 1e-23, ref: '10 yoctometers, weak force scale' },
+    { name: '1ym', meters: 1e-24, ref: '1 yoctometer, smallest SI unit' },
+    { name: '100rm', meters: 1e-25, ref: '100 rontometers, beyond direct measurement' },
+    { name: '10rm', meters: 1e-26, ref: '10 rontometers' },
+    { name: '1rm', meters: 1e-27, ref: '1 rontometer, theoretical particle scale' },
+    { name: '100qm', meters: 1e-28, ref: '100 quectometers, preon scale (hypothetical)' },
+    { name: '10qm', meters: 1e-29, ref: '10 quectometers' },
+    { name: '1qm', meters: 1e-30, ref: '1 quectometer' },
+    { name: '1e-31m', meters: 1e-31, ref: 'Approaching Planck scale, spacetime foam' },
+    { name: '1e-32m', meters: 1e-32, ref: 'Near Planck length, quantum gravity realm' },
+    { name: '1e-33m', meters: 1e-33, ref: 'Planck scale, spacetime itself becomes quantized' },
+    { name: '1e-34m', meters: 1e-34, ref: 'Approaching smallest possible length' },
+    { name: '1lP', meters: 1.616e-35, ref: 'Planck length: smallest meaningful length in physics' },
   ]
 
   const targetPixels = 100
@@ -223,12 +261,12 @@ const scaleRuler = computed(() => {
   for (const unit of units) {
     const px = ppm * unit.meters
     if (px >= minPixels && px <= maxPixels) {
-      return { label: `1 ${unit.name}`, pixels: px }
+      return { label: unit.name, pixels: px, ref: unit.ref }
     }
   }
 
   // Second try: find the best unit with a multiplier (powers of 10)
-  let bestResult: { label: string; pixels: number } | null = null
+  let bestResult: { label: string; pixels: number; ref: string } | null = null
   let bestDistance = Infinity
 
   for (const unit of units) {
@@ -248,8 +286,9 @@ const scaleRuler = computed(() => {
       if (distance < bestDistance) {
         bestDistance = distance
         bestResult = {
-          label: multiplier === 1 ? `1 ${unit.name}` : `${multiplier} ${unit.name}`,
-          pixels
+          label: unit.name,
+          pixels,
+          ref: unit.ref
         }
       }
     }
@@ -268,8 +307,9 @@ const scaleRuler = computed(() => {
       const pixels = pxPerUnit * multiplier
       if (pixels >= minPixels && pixels <= maxPixels) {
         return {
-          label: multiplier === 1 ? `1 ${unit.name}` : `${multiplier} ${unit.name}`,
-          pixels
+          label: unit.name,
+          pixels,
+          ref: unit.ref
         }
       }
     }
@@ -288,7 +328,7 @@ const scaleRuler = computed(() => {
     }
   }
 
-  return { label: `1 ${closestUnit.name}`, pixels: ppm * closestUnit.meters }
+  return { label: closestUnit.name, pixels: ppm * closestUnit.meters, ref: closestUnit.ref }
 })
 
 // Format distance for tooltip
@@ -316,9 +356,12 @@ function formatDistanceFromHorizon(n: number): string {
 <template>
   <div class="w-full h-[300px] flex items-center relative overflow-hidden pl-8 pr-8">
     <!-- Dimension Ruler -->
-    <div class="absolute top-4 left-12 flex items-center gap-2 z-20">
-      <div class="h-[2px] bg-white/40" :style="{ width: `${scaleRuler.pixels}px` }"></div>
-      <span class="text-xs text-white/60 font-mono">{{ scaleRuler.label }}</span>
+    <div class="absolute top-4 right-12 flex flex-col items-end z-20">
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-white/60 font-mono">{{ scaleRuler.label }}</span>
+        <div class="h-[2px] bg-white/40" :style="{ width: `${scaleRuler.pixels}px` }"></div>
+      </div>
+      <span class="text-[12px] text-white/60">{{ scaleRuler.ref }}</span>
     </div>
 
     <!-- Distance scale grid (subtle background) -->
@@ -345,7 +388,7 @@ function formatDistanceFromHorizon(n: number): string {
           width: `${fallerX - horizonEdgeX}px`
         }"
       >
-        <span class="text-xs text-blue-300 font-mono mt-[15px]">{{ formatDistanceFromHorizon(nCurrentFaller) }}</span>
+        <span class="text-xs text-blue-300 font-mono mt-[15px] px-1 rounded bg-[#1a1a2e]/50">{{ formatDistanceFromHorizon(nCurrentFaller) }}</span>
       </div>
 
       <!-- Observer distance line -->
@@ -357,7 +400,7 @@ function formatDistanceFromHorizon(n: number): string {
           width: `${observerX - horizonEdgeX}px`
         }"
       >
-        <span class="text-xs text-amber-300/80 font-mono mt-[5px]">{{ formatDistanceFromHorizon(nObserver) }}</span>
+        <span class="text-xs text-amber-300/80 font-mono mt-[5px] px-1 rounded bg-[#1a1a2e]/80">{{ formatDistanceFromHorizon(nObserver) }}</span>
       </div>
 
       <!-- Faller Object -->
