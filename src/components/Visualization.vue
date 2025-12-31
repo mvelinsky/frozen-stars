@@ -23,17 +23,48 @@ const blackHoleCanvas = ref<HTMLCanvasElement | null>(null)
 
 // Zoom state
 const zoom = ref<number>(1)
+const displayedZoom = ref<number>(1)  // For animation
+let zoomAnimation: number | null = null
+
+function animateZoom(target: number) {
+  if (zoomAnimation) {
+    cancelAnimationFrame(zoomAnimation)
+  }
+
+  const start = displayedZoom.value
+  const duration = 1500  // ms
+  const startTime = performance.now()
+
+  function step(currentTime: number) {
+    const elapsed = currentTime - startTime
+    const progress = Math.min(elapsed / duration, 1)
+
+    // Ease out cubic for smooth deceleration
+    const eased = 1 - Math.pow(1 - progress, 3)
+
+    displayedZoom.value = start + (target - start) * eased
+
+    if (progress < 1) {
+      zoomAnimation = requestAnimationFrame(step)
+    }
+  }
+
+  zoomAnimation = requestAnimationFrame(step)
+}
 
 function zoomIn() {
   zoom.value *= 10
+  animateZoom(zoom.value)
 }
 
 function zoomOut() {
   zoom.value /= 10
+  animateZoom(zoom.value)
 }
 
 function resetZoom() {
   zoom.value = 1
+  animateZoom(1)
 }
 
 // Draw the black hole as an arc on canvas
@@ -154,7 +185,7 @@ function drawBlackHole() {
 }
 
 // Redraw when zoom changes
-watch(zoom, () => {
+watch(displayedZoom, () => {
   drawBlackHole()
 })
 
@@ -180,7 +211,7 @@ const pixelsPerMeter = computed(() => {
   const obsDistance = getDistanceFromHorizonMeters(props.nObserver)
   const obsScreenX = 800  // Observer at 800px from left edge at 1x zoom
   const baseScale = (obsScreenX - horizonEdgeX) / obsDistance
-  return baseScale * zoom.value
+  return baseScale * displayedZoom.value
 })
 
 // Calculate screen position for a given n
@@ -442,7 +473,7 @@ function formatDistanceFromHorizon(n: number): string {
 
     <!-- Zoom controls -->
     <div class="absolute bottom-4 right-4 flex items-center gap-2">
-      <span class="text-[10px] text-gray-600 font-mono">{{ zoom.toFixed(2) }}×</span>
+      <span class="text-[10px] text-gray-600 font-mono">{{ displayedZoom.toFixed(2) }}×</span>
       <div class="flex gap-1">
         <button
           @click="zoomOut"
