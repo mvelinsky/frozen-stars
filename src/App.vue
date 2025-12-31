@@ -131,6 +131,9 @@ function toggleInstructions() {
               <span class="font-mono text-gray-400">{{ isFinite(timeToReceiveResponse) ? formatTime(timeToReceiveResponse, 4) : '∞' }}</span>
             </div>
           </div>
+          <p class="text-gray-500 text-xs mt-2 max-w-2xl">
+            Time for light to travel from the observer to the faller. With a mirror on the faller, the flash would be visible after the "round-trip" duration. This confirms the faller remains causally connected to and aware of events in the observer's frame.
+          </p>
         </div>
       </div>
 
