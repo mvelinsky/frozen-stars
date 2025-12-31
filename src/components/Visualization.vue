@@ -25,11 +25,11 @@ const blackHoleCanvas = ref<HTMLCanvasElement | null>(null)
 const zoom = ref<number>(1)
 
 function zoomIn() {
-  zoom.value *= 1.5
+  zoom.value *= 10
 }
 
 function zoomOut() {
-  zoom.value /= 1.5
+  zoom.value /= 10
 }
 
 function resetZoom() {
@@ -191,6 +191,106 @@ function getScreenX(n: number): number {
 const fallerX = computed(() => getScreenX(props.nCurrentFaller))
 const observerX = computed(() => getScreenX(props.nObserver))
 
+// Scale ruler: shows what physical distance corresponds to a reference bar
+const scaleRuler = computed(() => {
+  const ppm = pixelsPerMeter.value
+
+  // Units ordered by size (largest to smallest)
+  const units = [
+    { name: 'AU', meters: 1.496e11 },
+    { name: 'km', meters: 1e3 },
+    { name: 'm', meters: 1 },
+    { name: 'dm', meters: 1e-1 },
+    { name: 'cm', meters: 1e-2 },
+    { name: 'mm', meters: 1e-3 },
+    { name: 'μm', meters: 1e-6 },
+    { name: 'nm', meters: 1e-9 },
+    { name: 'pm', meters: 1e-12 },
+    { name: 'fm', meters: 1e-15 },
+    { name: 'am', meters: 1e-18 },
+    { name: 'zm', meters: 1e-21 },
+    { name: 'ym', meters: 1e-24 },
+    { name: 'rm', meters: 1e-27 },
+    { name: 'qm', meters: 1e-30 },
+    { name: 'lP', meters: 1.616e-35 },
+  ]
+
+  const targetPixels = 100
+  const minPixels = 50
+  const maxPixels = 200
+
+  // First try: find a unit where 1 unit fits in the target range
+  for (const unit of units) {
+    const px = ppm * unit.meters
+    if (px >= minPixels && px <= maxPixels) {
+      return { label: `1 ${unit.name}`, pixels: px }
+    }
+  }
+
+  // Second try: find the best unit with a multiplier (powers of 10)
+  let bestResult: { label: string; pixels: number } | null = null
+  let bestDistance = Infinity
+
+  for (const unit of units) {
+    const pxPerUnit = ppm * unit.meters
+    if (pxPerUnit < 0.001) continue  // Skip if way too small
+
+    // Find the best power of 10 multiplier
+    // Use floor to avoid overshooting maxPixels
+    const idealMultiplier = targetPixels / pxPerUnit
+    const power = Math.max(0, Math.floor(Math.log10(idealMultiplier)))
+    const multiplier = Math.pow(10, power)
+    const pixels = pxPerUnit * multiplier
+
+    // Check if this is within bounds and better than previous best
+    if (pixels >= minPixels && pixels <= maxPixels) {
+      const distance = Math.abs(pixels - targetPixels)
+      if (distance < bestDistance) {
+        bestDistance = distance
+        bestResult = {
+          label: multiplier === 1 ? `1 ${unit.name}` : `${multiplier} ${unit.name}`,
+          pixels
+        }
+      }
+    }
+  }
+
+  if (bestResult) return bestResult
+
+  // Fallback: find ANY unit that fits, trying multipliers from high to low
+  for (const unit of units) {
+    const pxPerUnit = ppm * unit.meters
+    if (pxPerUnit < 0.001) continue
+
+    // Try multipliers from 10^12 down to 1 (handle extreme zoom cases)
+    for (let power = 12; power >= 0; power--) {
+      const multiplier = Math.pow(10, power)
+      const pixels = pxPerUnit * multiplier
+      if (pixels >= minPixels && pixels <= maxPixels) {
+        return {
+          label: multiplier === 1 ? `1 ${unit.name}` : `${multiplier} ${unit.name}`,
+          pixels
+        }
+      }
+    }
+  }
+
+  // Last resort: find closest single unit (even if outside range)
+  let closestUnit = units[0]
+  let closestDiff = Math.abs(ppm * closestUnit.meters - targetPixels)
+
+  for (const unit of units) {
+    const px = ppm * unit.meters
+    const diff = Math.abs(px - targetPixels)
+    if (diff < closestDiff) {
+      closestDiff = diff
+      closestUnit = unit
+    }
+  }
+
+  return { label: `1 ${closestUnit.name}`, pixels: ppm * closestUnit.meters }
+})
+
 // Format distance for tooltip
 function formatDistanceFromHorizon(n: number): string {
   const rs_km = units.value.distanceToKm(1)
@@ -215,6 +315,12 @@ function formatDistanceFromHorizon(n: number): string {
 
 <template>
   <div class="w-full h-[300px] flex items-center relative overflow-hidden pl-8 pr-8">
+    <!-- Dimension Ruler -->
+    <div class="absolute top-4 left-12 flex items-center gap-2 z-20">
+      <div class="h-[2px] bg-white/40" :style="{ width: `${scaleRuler.pixels}px` }"></div>
+      <span class="text-xs text-white/60 font-mono">{{ scaleRuler.label }}</span>
+    </div>
+
     <!-- Distance scale grid (subtle background) -->
     <div class="absolute inset-0 flex items-center bg-[#1a1a2e] ml-[30px]">
       <div class="w-full h-px bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
