@@ -32,15 +32,17 @@ function animateZoom(target: number) {
   }
 
   const start = displayedZoom.value
-  const duration = 1500  // ms
+  const duration = 2250  // ms
   const startTime = performance.now()
 
   function step(currentTime: number) {
     const elapsed = currentTime - startTime
     const progress = Math.min(elapsed / duration, 1)
 
-    // Ease out cubic for smooth deceleration
-    const eased = 1 - Math.pow(1 - progress, 3)
+    // Ease in-out cubic: smooth acceleration and deceleration
+    const eased = progress < 0.5
+      ? 4 * progress * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2
 
     displayedZoom.value = start + (target - start) * eased
 
