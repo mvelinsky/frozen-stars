@@ -47,9 +47,40 @@ export function stationaryProperTime(t: number, nObserver: number): number {
 
 // ============ PHOTONS ============
 
+// Outward photon (from faller towards observer, n decreasing)
 export function photonN(nEmit: number, tEmit: number, tCurrent: number): number {
   const dt = tCurrent - tEmit;
   if (dt <= 0) return nEmit;
   const speed = 1 / (Math.LN10 * Math.pow(10, Math.max(nEmit, 0)));
   return nEmit - dt * speed;
+}
+
+// Inward photon (from observer towards horizon, n increasing)
+// dn/dt = 1 / (ln10 * (1 + 10^(-n)))
+// For efficiency, we work in log space: log_dt = log10(dt)
+export function photonNInward(nEmit: number, tEmit: number, tCurrent: number): number {
+  const dt = tCurrent - tEmit;
+  if (dt <= 0) return nEmit;
+
+  // For inward photon, speed approaches 1/ln10 near horizon
+  // dn/dt = 1 / (ln10 * (1 + 10^(-n)))
+  // Integrate: n increases as photon falls in
+
+  // The photon's n increases. Near horizon (high n), dn/dt ≈ 1/ln10.
+  // Far out (low/negative n), dn/dt ≈ 1/(ln10 * 10^(-n)) = 10^n / ln10
+
+  // Simple integration: at observer's position, integrate inward
+  // For a photon at position n, coordinate time to reach horizon ~= ln10 * 10^(-n)
+  // So after time dt, photon reaches n where: 10^(-n) = 10^(-nEmit) - dt/ln10
+
+  // In log space: the remaining "log-distance" decreases
+  const remainingLogDist = Math.pow(10, -nEmit);
+  const traveled = dt / Math.LN10;
+  const newRemaining = remainingLogDist - traveled;
+
+  if (newRemaining <= 0) {
+    return Infinity; // Reached/crossed horizon
+  }
+
+  return -Math.log10(newRemaining);
 }

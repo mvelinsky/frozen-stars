@@ -61,6 +61,16 @@ function getTimeScaleReference(tau: number): string {
 }
 
 const observerTimeReference = computed(() => getTimeScaleReference(currentState.value.object2.tau))
+
+// Photon exchange timing
+const timeToIntercept = computed(() => {
+  const currentObserverTau = currentState.value.object2.tau
+  const interceptTau = engine.value.getPhotonIntersectTau(currentObserverTau)
+  if (!isFinite(interceptTau)) return Infinity
+  return interceptTau - currentObserverTau
+})
+
+const timeToReceiveResponse = computed(() => timeToIntercept.value * 2)
 </script>
 
 <template>
@@ -88,6 +98,24 @@ const observerTimeReference = computed(() => getTimeScaleReference(currentState.
           <h3 class="text-sm text-gray-500 mb-2 uppercase tracking-widest">Observer Proper Time</h3>
           <p class="font-mono text-3xl text-blue-400">{{ formatTime(currentState.object2.tau) }}</p>
           <p v-if="observerTimeReference" class="text-gray-400 mt-2">{{ observerTimeReference }}</p>
+        </div>
+      </div>
+
+      <!-- Photon Exchange Bar -->
+      <div class="border-b border-white/5 px-8 py-4">
+        <h3 class="text-sm text-gray-500 mb-2 uppercase tracking-widest">
+          Photon Emission
+          <span class="normal-case tracking-normal text-gray-600 ml-2">— information exchange between observer and faller</span>
+        </h3>
+        <div class="flex items-baseline gap-6">
+          <div>
+            <span class="text-gray-500 text-sm mr-2">Time to intercept:</span>
+            <span class="font-mono text-xl text-blue-400">{{ isFinite(timeToIntercept) ? formatTime(timeToIntercept) : '∞' }}</span>
+          </div>
+          <div>
+            <span class="text-gray-600 text-sm mr-2">Round-trip:</span>
+            <span class="font-mono text-gray-500">{{ isFinite(timeToReceiveResponse) ? formatTime(timeToReceiveResponse) : '∞' }}</span>
+          </div>
         </div>
       </div>
 
