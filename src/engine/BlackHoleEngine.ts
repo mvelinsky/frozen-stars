@@ -118,11 +118,12 @@ export class BlackHoleEngine {
   /**
    * Get faller's n-coordinate at a given coordinate time.
    * Inverse of coordinateTime: n = log10(t + 10^nStart)
+   * @param t - Coordinate time (relative to faller's start at t=0)
    */
   private fallerNAtCoordinateTime(t: number): number {
+    if (t <= 0) return this.cfg.nFaller;
     const nStart = this.cfg.nFaller;
     const val = t + Math.pow(10, nStart);
-    if (val <= 0) return nStart;
     return Math.log10(val);
   }
 

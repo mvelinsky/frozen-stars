@@ -37,20 +37,20 @@ watch([nFaller, nObserver], () => {
   currentNTau.value = 0
 })
 
-function formatTime(tau: number): string {
+function formatTime(tau: number, precision: number = 2): string {
   const seconds = units.value.tauToSeconds(tau)
-  if (seconds < 1e-15) return `${(seconds * 1e18).toFixed(2)}as`
-  if (seconds < 1e-12) return `${(seconds * 1e15).toFixed(2)}fs`
-  if (seconds < 1e-9) return `${(seconds * 1e12).toFixed(2)}ps`
-  if (seconds < 1e-6) return `${(seconds * 1e9).toFixed(2)}ns`
-  if (seconds < 1e-3) return `${(seconds * 1e6).toFixed(2)}μs`
-  if (seconds < 1) return `${(seconds * 1e3).toFixed(2)}ms`
-  if (seconds < 60) return `${seconds.toFixed(2)}s`
-  if (seconds < 3600) return `${(seconds / 60).toFixed(2)}m`
-  if (seconds < 86400) return `${(seconds / 3600).toFixed(2)}h`
-  if (seconds < 31536000) return `${(seconds / 86400).toFixed(2)}d`
+  if (seconds < 1e-15) return `${(seconds * 1e18).toFixed(precision)}as`
+  if (seconds < 1e-12) return `${(seconds * 1e15).toFixed(precision)}fs`
+  if (seconds < 1e-9) return `${(seconds * 1e12).toFixed(precision)}ps`
+  if (seconds < 1e-6) return `${(seconds * 1e9).toFixed(precision)}ns`
+  if (seconds < 1e-3) return `${(seconds * 1e6).toFixed(precision)}μs`
+  if (seconds < 1) return `${(seconds * 1e3).toFixed(precision)}ms`
+  if (seconds < 60) return `${seconds.toFixed(precision)}s`
+  if (seconds < 3600) return `${(seconds / 60).toFixed(precision)}m`
+  if (seconds < 86400) return `${(seconds / 3600).toFixed(precision)}h`
+  if (seconds < 31536000) return `${(seconds / 86400).toFixed(precision)}d`
   const years = seconds / 31536000
-  if (years < 1e15) return `${years.toFixed(2)}y`
+  if (years < 1e15) return `${years.toFixed(precision)}y`
   return `${years.toExponential(2)}y`
 }
 
@@ -130,11 +130,11 @@ const faqItems = [
           <div class="flex items-baseline gap-8">
             <div>
               <span class="text-gray-400 text-sm mr-2">Time to intercept:</span>
-              <span class="font-mono text-xl text-blue-400">{{ isFinite(timeToIntercept) ? formatTime(timeToIntercept) : '∞' }}</span>
+              <span class="font-mono text-xl text-blue-400">{{ isFinite(timeToIntercept) ? formatTime(timeToIntercept, 4) : '∞' }}</span>
             </div>
             <div>
               <span class="text-gray-500 text-sm mr-2">Round-trip:</span>
-              <span class="font-mono text-gray-400">{{ isFinite(timeToReceiveResponse) ? formatTime(timeToReceiveResponse) : '∞' }}</span>
+              <span class="font-mono text-gray-400">{{ isFinite(timeToReceiveResponse) ? formatTime(timeToReceiveResponse, 4) : '∞' }}</span>
             </div>
           </div>
         </div>
