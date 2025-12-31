@@ -7,6 +7,11 @@ const props = defineProps<{
   nFaller: number
   nObserver: number
   nCurrentFaller: number
+  photons?: Array<{
+    currentN: number
+    direction: 'in' | 'out'
+    status: string
+  }>
 }>()
 
 const units = computed(() => createUnits(props.solarMass))
@@ -151,12 +156,43 @@ function drawBlackHole() {
     ctx.arc(centerX, centerY, radius, Math.PI / 2, 3 * Math.PI / 2, false)
     ctx.stroke()
   }
+
+  // Draw photons
+  const horizonY = centerY
+  props.photons?.forEach(photon => {
+    const x = getScreenX(photon.currentN)
+
+    // Skip if off screen (to the left)
+    if (x < -50) return
+
+    // Color based on direction/status
+    const color = photon.direction === 'in'
+      ? 'rgba(147, 51, 234, 0.9)'  // Purple for inbound
+      : 'rgba(34, 197, 94, 0.9)'   // Green for outbound/reflected
+
+    // Draw photon as glowing dot
+    ctx.beginPath()
+    ctx.arc(x, horizonY, 6, 0, Math.PI * 2)
+    ctx.fillStyle = color
+    ctx.fill()
+
+    // Glow effect
+    ctx.shadowColor = color
+    ctx.shadowBlur = 15
+    ctx.fill()
+    ctx.shadowBlur = 0
+  })
 }
 
 // Redraw when zoom changes
 watch(zoom, () => {
   drawBlackHole()
 })
+
+// Redraw when photons change
+watch(() => props.photons, () => {
+  drawBlackHole()
+}, { deep: true })
 
 // Initial draw
 onMounted(() => {
