@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const activeTab = ref<'main' | 'faq'>('main')
+const activeTab = ref<'main' | 'simulation' | 'faq'>('main')
 
 // FAQ data
 const faqItems = [
@@ -19,7 +19,7 @@ defineEmits<{ toggle: [] }>()
 </script>
 
 <template>
-  <div class="flex flex-col min-h-0 bg-[#0a0a12]">
+  <div class="flex flex-col h-full min-h-0 bg-[#0a0a12]">
     <!-- Header Bar -->
     <div class="flex items-center justify-between border-b border-gray-700/50 px-6 py-2 cursor-pointer hover:bg-[#0f0f1a] transition-colors select-none" @click="$emit('toggle')">
       <div class="flex gap-1">
@@ -33,6 +33,17 @@ defineEmits<{ toggle: [] }>()
           ]"
         >
           What am I looking at?
+        </button>
+        <button
+          @click.stop="expanded ? (activeTab = 'simulation') : $emit('toggle')"
+          :class="[
+            'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+            activeTab === 'simulation'
+              ? 'border-blue-400 text-blue-400'
+              : 'border-transparent text-gray-400 hover:text-gray-300'
+          ]"
+        >
+          How to Use
         </button>
         <button
           @click.stop="expanded ? (activeTab = 'faq') : $emit('toggle')"
@@ -102,8 +113,86 @@ defineEmits<{ toggle: [] }>()
         </p>
       </div>
 
+      <!-- Simulation Instructions Tab -->
+      <div v-else-if="activeTab === 'simulation'" class="max-w-3xl space-y-6">
+        <h2 class="text-lg font-semibold text-blue-300 mb-4">How to Use the Simulation</h2>
+
+        <div class="space-y-6">
+          <div>
+            <h3 class="text-sm font-semibold text-blue-200 mb-2">Progress Slider</h3>
+            <p class="text-gray-300 leading-relaxed mb-3">
+              Drag the slider to manually control the faller's progress. The display shows three time scales:
+            </p>
+            <ul class="text-gray-400 text-sm space-y-1 ml-4 list-disc">
+              <li><span class="text-blue-300">τ (tau)</span> - Faller's proper time in simulation units</li>
+              <li><span class="text-blue-300">Real time</span> - Converted to seconds/minutes/hours/etc.</li>
+              <li><span class="text-purple-300">n_τ</span> - Logarithmic time coordinate (0 → ∞)</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold text-blue-200 mb-2">Speed Selector</h3>
+            <p class="text-gray-300 leading-relaxed mb-3">
+              Choose how fast the simulation runs. Options range from <span class="text-blue-300">10⁻⁸¹s/tick</span> (sub-Planck time) to <span class="text-blue-300">1 day/tick</span>, spanning 87 orders of magnitude.
+            </p>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold text-blue-200 mb-2">Control Buttons</h3>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="bg-white/5 p-3 rounded">
+                <span class="text-blue-300 font-medium">Start</span>
+                <p class="text-gray-400 text-xs mt-1">Begins continuous animation at the selected speed</p>
+              </div>
+              <div class="bg-white/5 p-3 rounded">
+                <span class="text-amber-300 font-medium">Stop</span>
+                <p class="text-gray-400 text-xs mt-1">Pauses the animation at the current position</p>
+              </div>
+              <div class="bg-white/5 p-3 rounded">
+                <span class="text-purple-300 font-medium">Skip to End</span>
+                <p class="text-gray-400 text-xs mt-1">Jumps to 1 tick before the horizon at the current timescale</p>
+              </div>
+              <div class="bg-white/5 p-3 rounded">
+                <span class="text-green-300 font-medium">Step</span>
+                <p class="text-gray-400 text-xs mt-1">Advances by one tick of proper time</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold text-blue-200 mb-2">Options</h3>
+            <div class="space-y-3">
+              <div class="bg-white/5 p-3 rounded">
+                <span class="text-blue-300 font-medium text-sm">Stop 1 tick before horizon</span>
+                <p class="text-gray-400 text-xs mt-1">
+                  When enabled, the animation stops at exactly 1 tick of proper time before the horizon. The stop point is calculated as n_τ = log₁₀(τ_max / τ_per_tick). This lets you explore arbitrarily close approaches—reaching 10⁻³⁰, 10⁻⁶⁰, even 10⁻⁹⁰ of the remaining proper time—without ever crossing the horizon.
+                </p>
+              </div>
+              <div class="bg-white/5 p-3 rounded">
+                <span class="text-blue-300 font-medium text-sm">Auto-switch to smaller timescale</span>
+                <p class="text-gray-400 text-xs mt-1">
+                  When the animation stops at the "1 tick before" point, it automatically switches to the next smaller timescale and continues. This creates a continuous journey: at 1ns/tick you reach 1ns before the horizon, then auto-switch to 1ps/tick and continue to 1ps before, then 1fs/tick, and so on down to 10⁻⁸¹s/tick. Requires "Stop 1 tick before" to be enabled.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold text-blue-200 mb-2">Key Concepts</h3>
+            <div class="space-y-2 text-sm">
+              <p class="text-gray-300 leading-relaxed">
+                <span class="text-purple-300 font-medium">n_τ (logarithmic time)</span> maps the finite proper time interval [0, τ_max) to an infinite range [0, ∞). This allows exploring extreme scales—when n_τ = 20, the faller is within 10⁻²⁰ of the horizon crossing time.
+              </p>
+              <p class="text-gray-300 leading-relaxed">
+                The <span class="text-blue-300 font-medium">stop point</span> is calculated as exactly 1 tick of proper time before the horizon: n_τ = log₁₀(τ_max / τ_per_tick). This ensures you can always continue the journey by switching to a smaller timescale.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- FAQ Tab -->
-      <div v-else class="max-w-3xl space-y-6">
+      <div v-else-if="activeTab === 'faq'" class="max-w-3xl space-y-6">
         <div v-for="(item, index) in faqItems" :key="index" class="border-b border-gray-700/30 pb-6 last:border-0">
           <p class="text-blue-300 font-medium mb-2">{{ item.q }}</p>
           <p class="text-gray-400 text-sm leading-relaxed">{{ item.a }}</p>

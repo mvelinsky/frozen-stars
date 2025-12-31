@@ -135,7 +135,7 @@ function toggleInstructions() {
       </div>
 
       <!-- Main Visualization -->
-      <div class="overflow-hidden" :class="showInstructions ? 'flex-none h-[50vh]' : 'flex-1'">
+      <div class="overflow-hidden" :class="showInstructions ? 'h-[300px]' : 'flex-1'">
         <Visualization
           :solar-mass="mass"
           :n-faller="nFaller"
@@ -145,7 +145,7 @@ function toggleInstructions() {
       </div>
 
       <!-- Instructions Section - header always visible, content collapsible -->
-      <div class="flex flex-col border-t border-gray-700/30" :class="showInstructions ? 'flex-1 min-h-0' : 'flex-none'">
+      <div class="flex flex-col border-t border-gray-700/30 min-h-0" :class="showInstructions ? 'flex-1' : 'flex-none'">
         <Instructions :expanded="showInstructions" @toggle="toggleInstructions" />
       </div>
     </div>
