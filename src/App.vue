@@ -62,9 +62,10 @@ function getTimeScaleReference(tau: number): string {
 
 const observerTimeReference = computed(() => getTimeScaleReference(currentState.value.object2.tau))
 
-// Photon exchange timing
+// Photon exchange timing - depends on current simulation state
 const timeToIntercept = computed(() => {
-  const currentObserverTau = currentState.value.object2.tau
+  const state = engine.value.getStateByNTau(currentNTau.value)
+  const currentObserverTau = state.object2.tau
   const interceptTau = engine.value.getPhotonIntersectTau(currentObserverTau)
   if (!isFinite(interceptTau)) return Infinity
   return interceptTau - currentObserverTau
@@ -85,36 +86,42 @@ const timeToReceiveResponse = computed(() => timeToIntercept.value * 2)
 
     <!-- Visualization Area -->
     <div class="flex-1 flex flex-col bg-[#0a0a12]">
-      <!-- Proper Time Bar -->
-      <div class="h-[150px] border-b border-white/5 px-8 py-6 flex items-start gap-8">
-        <!-- Faller -->
-        <div class="flex-1">
-          <h3 class="text-sm text-gray-500 mb-2 uppercase tracking-widest">Faller Proper Time</h3>
-          <p class="font-mono text-3xl text-blue-400">{{ formatTime(currentState.object1.tau) }}</p>
-          <p class="text-gray-500 mt-2">Distance to horizon: <DistanceToHorizon :solar-mass="mass" :n="currentState.object1.n" /></p>
-        </div>
-        <!-- Observer -->
-        <div class="flex-1">
-          <h3 class="text-sm text-gray-500 mb-2 uppercase tracking-widest">Observer Proper Time</h3>
-          <p class="font-mono text-3xl text-blue-400">{{ formatTime(currentState.object2.tau) }}</p>
-          <p v-if="observerTimeReference" class="text-gray-400 mt-2">{{ observerTimeReference }}</p>
-        </div>
-      </div>
-
-      <!-- Photon Exchange Bar -->
-      <div class="border-b border-white/5 px-8 py-4">
-        <h3 class="text-sm text-gray-500 mb-2 uppercase tracking-widest">
-          Photon Emission
-          <span class="normal-case tracking-normal text-gray-600 ml-2">— information exchange between observer and faller</span>
-        </h3>
-        <div class="flex items-baseline gap-6">
-          <div>
-            <span class="text-gray-500 text-sm mr-2">Time to intercept:</span>
-            <span class="font-mono text-xl text-blue-400">{{ isFinite(timeToIntercept) ? formatTime(timeToIntercept) : '∞' }}</span>
+      <!-- Stats Panel -->
+      <div class="bg-[#12121f] border-b-2 border-blue-500/20">
+        <!-- Proper Time Bar -->
+        <div class="px-8 py-6 flex items-start gap-12">
+          <!-- Faller -->
+          <div class="flex-1">
+            <h3 class="text-xs text-blue-300/60 mb-3 uppercase tracking-widest font-medium">Faller Proper Time</h3>
+            <p class="font-mono text-4xl text-blue-400 font-light tracking-tight">{{ formatTime(currentState.object1.tau) }}</p>
+            <p class="text-gray-400 mt-3 text-sm">Distance to horizon: <DistanceToHorizon :solar-mass="mass" :n="currentState.object1.n" /></p>
           </div>
-          <div>
-            <span class="text-gray-600 text-sm mr-2">Round-trip:</span>
-            <span class="font-mono text-gray-500">{{ isFinite(timeToReceiveResponse) ? formatTime(timeToReceiveResponse) : '∞' }}</span>
+          <!-- Divider -->
+          <div class="w-px h-20 bg-blue-500/20 self-center"></div>
+          <!-- Observer -->
+          <div class="flex-1">
+            <h3 class="text-xs text-blue-300/60 mb-3 uppercase tracking-widest font-medium">Observer Proper Time</h3>
+            <p class="font-mono text-4xl text-blue-400 font-light tracking-tight">{{ formatTime(currentState.object2.tau) }}</p>
+            <p v-if="observerTimeReference" class="text-gray-400 mt-3 text-sm">{{ observerTimeReference }}</p>
+            <p v-else class="mt-3 text-sm">&nbsp;</p>
+          </div>
+        </div>
+
+        <!-- Photon Exchange Bar -->
+        <div class="px-8 py-4">
+          <h3 class="text-xs text-blue-300/60 mb-2 uppercase tracking-widest font-medium">
+            Photon Emission
+            <span class="normal-case tracking-normal text-gray-400 font-normal ml-2">— information exchange between observer and faller</span>
+          </h3>
+          <div class="flex items-baseline gap-8">
+            <div>
+              <span class="text-gray-400 text-sm mr-2">Time to intercept:</span>
+              <span class="font-mono text-xl text-blue-400">{{ isFinite(timeToIntercept) ? formatTime(timeToIntercept) : '∞' }}</span>
+            </div>
+            <div>
+              <span class="text-gray-500 text-sm mr-2">Round-trip:</span>
+              <span class="font-mono text-gray-400">{{ isFinite(timeToReceiveResponse) ? formatTime(timeToReceiveResponse) : '∞' }}</span>
+            </div>
           </div>
         </div>
       </div>
