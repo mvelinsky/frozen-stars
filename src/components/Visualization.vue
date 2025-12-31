@@ -97,45 +97,42 @@ function drawBlackHole() {
   const diskInnerRadius = radius * 1.5
   const diskOuterRadius = radius * 3.5
 
-  // Create gradient for the disk (brighter near inner edge, fading out)
-  const diskGradient = ctx.createRadialGradient(
-    centerX, centerY, diskInnerRadius,
-    centerX, centerY, diskOuterRadius
-  )
-  diskGradient.addColorStop(0, 'rgba(255, 200, 100, 0.8)')   // Bright hot inner edge
-  diskGradient.addColorStop(0.2, 'rgba(255, 150, 50, 0.6)')   // Orange
-  diskGradient.addColorStop(0.5, 'rgba(200, 100, 50, 0.3)')  // Red-orange
-  diskGradient.addColorStop(1, 'rgba(150, 50, 50, 0)')        // Fade to transparent
+  // Only render if within screen bounds
+  if (diskOuterRadius < canvas.width * 2) {
+    // Create gradient for the disk (brighter near inner edge, fading out)
+    const diskGradient = ctx.createRadialGradient(
+      centerX, centerY, diskInnerRadius,
+      centerX, centerY, diskOuterRadius
+    )
+    diskGradient.addColorStop(0, 'rgba(255, 200, 100, 0.8)')   // Bright hot inner edge
+    diskGradient.addColorStop(0.2, 'rgba(255, 150, 50, 0.6)')   // Orange
+    diskGradient.addColorStop(0.5, 'rgba(200, 100, 50, 0.3)')  // Red-orange
+    diskGradient.addColorStop(1, 'rgba(150, 50, 50, 0)')        // Fade to transparent
 
-  // Draw the accretion disk arc (only the visible part)
-  ctx.fillStyle = diskGradient
-  ctx.beginPath()
+    // Draw as a full circle ring
+    ctx.fillStyle = diskGradient
+    ctx.beginPath()
+    ctx.arc(centerX, centerY, diskOuterRadius, 0, Math.PI * 2, false)
+    ctx.arc(centerX, centerY, diskInnerRadius, Math.PI * 2, 0, true)
+    ctx.closePath()
+    ctx.fill()
 
-  // Calculate the arc angles for the disk
-  const diskStartAngle = Math.max(startAngle - 0.1, -Math.PI / 2 - 0.3)
-  const diskEndAngle = Math.min(endAngle + 0.1, Math.PI / 2 + 0.3)
+    // Add brighter inner rim glow (full circle)
+    const rimGradient = ctx.createRadialGradient(
+      centerX, centerY, diskInnerRadius * 0.9,
+      centerX, centerY, diskInnerRadius * 1.2
+    )
+    rimGradient.addColorStop(0, 'rgba(255, 255, 200, 0)')
+    rimGradient.addColorStop(0.5, 'rgba(255, 220, 150, 0.6)')
+    rimGradient.addColorStop(1, 'rgba(255, 200, 100, 0)')
 
-  // Draw as a thick arc segment
-  ctx.arc(centerX, centerY, diskOuterRadius, diskStartAngle, diskEndAngle, true)
-  ctx.arc(centerX, centerY, diskInnerRadius, diskEndAngle, diskStartAngle, false)
-  ctx.closePath()
-  ctx.fill()
-
-  // Add brighter inner rim glow
-  const rimGradient = ctx.createRadialGradient(
-    centerX, centerY, diskInnerRadius * 0.9,
-    centerX, centerY, diskInnerRadius * 1.2
-  )
-  rimGradient.addColorStop(0, 'rgba(255, 255, 200, 0)')
-  rimGradient.addColorStop(0.5, 'rgba(255, 220, 150, 0.6)')
-  rimGradient.addColorStop(1, 'rgba(255, 200, 100, 0)')
-
-  ctx.fillStyle = rimGradient
-  ctx.beginPath()
-  ctx.arc(centerX, centerY, diskInnerRadius * 1.2, diskStartAngle, diskEndAngle, true)
-  ctx.arc(centerX, centerY, diskInnerRadius * 0.9, diskEndAngle, diskStartAngle, false)
-  ctx.closePath()
-  ctx.fill()
+    ctx.fillStyle = rimGradient
+    ctx.beginPath()
+    ctx.arc(centerX, centerY, diskInnerRadius * 1.2, 0, Math.PI * 2, false)
+    ctx.arc(centerX, centerY, diskInnerRadius * 0.9, Math.PI * 2, 0, true)
+    ctx.closePath()
+    ctx.fill()
+  }
 
   // Draw the left semicircle if the center is visible (zoomed out)
   if (centerX >= 0) {
