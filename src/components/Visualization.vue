@@ -109,38 +109,38 @@ function formatDistanceFromHorizon(n: number): string {
       <!-- Distance lines and labels -->
       <!-- Faller distance line -->
       <div
-        class="absolute top-1/2 -translate-y-1/2 border-t border-dashed border-blue-500/30 flex items-center justify-center"
+        class="absolute top-[47px] -translate-y-1/2 border-t border-dashed border-blue-400/50 flex items-center justify-center"
         :style="{
           left: `${horizonEdgeX}px`,
           width: `${fallerX - horizonEdgeX}px`
         }"
       >
-        <span class="text-[10px] text-blue-400/70 font-mono mt-3">{{ formatDistanceFromHorizon(nCurrentFaller) }}</span>
+        <span class="text-xs text-blue-300 font-mono mt-[15px]">{{ formatDistanceFromHorizon(nCurrentFaller) }}</span>
       </div>
 
       <!-- Observer distance line -->
       <div
         v-if="isFinite(nObserver)"
-        class="absolute top-1/2 -translate-y-1/2 border-t border-dashed border-gray-500/20 flex items-center justify-center"
+        class="absolute top-[50px] -translate-y-1/2 border-t border-dashed border-amber-400/50 flex items-center justify-center"
         :style="{
           left: `${horizonEdgeX}px`,
           width: `${observerX - horizonEdgeX}px`
         }"
       >
-        <span class="text-[10px] text-gray-500/50 font-mono mt-6">{{ formatDistanceFromHorizon(nObserver) }}</span>
+        <span class="text-xs text-amber-300/80 font-mono mt-[5px]">{{ formatDistanceFromHorizon(nObserver) }}</span>
       </div>
 
       <!-- Faller Object -->
       <div
-        class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10"
+        class="absolute top-[32px] -translate-y-1/2 -translate-x-1/2 z-10"
         :style="{ left: `${fallerX}px` }"
       >
         <div class="w-[10px] h-[10px] rounded bg-blue-400 shadow-lg shadow-blue-400/50 relative">
           <!-- Glow effect -->
           <div class="absolute inset-0 rounded bg-blue-400 blur-sm opacity-50"></div>
         </div>
-        <!-- Label below -->
-        <div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 whitespace-nowrap">
+        <!-- Label above -->
+        <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap">
           <span class="text-[10px] text-blue-400 font-medium">Faller</span>
         </div>
       </div>
@@ -155,8 +155,8 @@ function formatDistanceFromHorizon(n: number): string {
           <!-- Glow effect -->
           <div class="absolute inset-0 rounded bg-amber-400 blur-sm opacity-30"></div>
         </div>
-        <!-- Label below -->
-        <div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 whitespace-nowrap">
+        <!-- Label above -->
+        <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap">
           <span class="text-[10px] text-amber-400 font-medium">Observer</span>
         </div>
       </div>
