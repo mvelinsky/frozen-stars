@@ -83,7 +83,7 @@ function formatDistanceFromHorizon(n: number): string {
 </script>
 
 <template>
-  <div class="w-full h-full flex items-center bg-[#050508] relative overflow-hidden pl-8 pr-8">
+  <div class="w-full h-[300px] flex items-center bg-[#050508] relative overflow-hidden pl-8 pr-8">
     <!-- Distance scale grid (subtle background) -->
     <div class="absolute inset-0 flex items-center">
       <div class="w-full h-px bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>

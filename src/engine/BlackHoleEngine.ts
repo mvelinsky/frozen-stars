@@ -127,67 +127,71 @@ export class BlackHoleEngine {
   }
 
   /**
-   * Find the observer's proper time when a photon emitted towards the horizon
+   * Find how long (in observer proper time) until a photon emitted now
    * intersects the falling object.
-   * Uses binary search in log-time space.
+   * Uses binary search with actual Schwarzschild physics.
+   *
+   * Key physics:
+   * - Both photon and faller slow down near horizon at same rate asymptotically
+   * - Photon always has slight edge and catches up in finite coordinate time
+   * - Intercept time grows with emission time, but remains finite
+   *
    * @param tauEmit - Observer's proper time when photon was emitted
-   * @returns Observer's proper time at intersection (Infinity if no intersection)
+   * @returns Delta in observer proper time until intersection (Infinity if no intersection)
    */
-  getPhotonIntersectTau(tauEmit: number): number {
+  getPhotonIntersectDelta(tauEmit: number): number {
     const tEmit = this.observerTauToCoordinateTime(tauEmit);
+    const rObserver = nToRadius(this.cfg.nObserver);
 
-    // At emission: check if faller already at horizon
-    const fallerNAtEmit = this.fallerNAtCoordinateTime(tEmit);
+    // Binary search for intersection time in coordinate time
+    let tLow = tEmit;
+    let tHigh = tEmit * 2 + 10; // Start with a reasonable upper bound
 
-    // If faller already at or past horizon at emission time, no intersection
-    if (!isFinite(fallerNAtEmit)) {
+    // Find upper bound where photon has passed or caught faller
+    let attempts = 0;
+    while (attempts < 100) {
+      const nFallerAtHigh = this.fallerNAtCoordinateTime(tHigh);
+      const nPhotonAtHigh = photonNInward(this.cfg.nObserver, tEmit, tHigh);
+
+      if (!isFinite(nPhotonAtHigh) || nPhotonAtHigh >= nFallerAtHigh) {
+        break; // Photon reached or passed faller
+      }
+
+      tHigh *= 2;
+      attempts++;
+
+      if (tHigh > 1e100 || !isFinite(tHigh)) {
+        return Infinity; // No convergence
+      }
+    }
+
+    if (attempts >= 100) {
       return Infinity;
     }
 
-    // Photon starts behind faller (lower n = further from horizon)
-    // Binary search in log-coordinate-time space for numerical stability
-    // Search for log10(dt) where dt = t - tEmit
+    // Binary search for intersection
+    for (let i = 0; i < 60; i++) {
+      const tMid = (tLow + tHigh) / 2;
+      const nFallerAtMid = this.fallerNAtCoordinateTime(tMid);
+      const nPhotonAtMid = photonNInward(this.cfg.nObserver, tEmit, tMid);
 
-    // Upper bound: when photon reaches horizon
-    // Photon reaches horizon when: 10^(-nObserver) - dt/ln10 = 0
-    // dt_max = ln10 * 10^(-nObserver)
-    const logDtMax = Math.log10(Math.LN10) - this.cfg.nObserver;
-
-    // Lower bound: very small dt
-    let logDtLow = -10; // dt = 10^-10
-    let logDtHigh = logDtMax - 1e-10; // Just before horizon
-
-    const EPS = 1e-12;
-    const MAX_ITER = 100;
-
-    for (let i = 0; i < MAX_ITER; i++) {
-      const logDtMid = (logDtLow + logDtHigh) / 2;
-      const dt = Math.pow(10, logDtMid);
-      const tCurrent = tEmit + dt;
-
-      const photonN = photonNInward(this.cfg.nObserver, tEmit, tCurrent);
-      const fallerN = this.fallerNAtCoordinateTime(tCurrent);
-
-      // Check for convergence
-      if (Math.abs(photonN - fallerN) < EPS || logDtHigh - logDtLow < EPS) {
-        // Convert coordinate time back to observer proper time
-        const rObserver = nToRadius(this.cfg.nObserver);
-        return tCurrent * Math.sqrt(1 - 1 / rObserver);
-      }
-
-      if (photonN < fallerN) {
-        // Photon hasn't caught up yet (lower n = further out)
-        logDtLow = logDtMid;
+      if (!isFinite(nPhotonAtMid) || nPhotonAtMid >= nFallerAtMid) {
+        tHigh = tMid;
       } else {
-        // Photon has passed faller
-        logDtHigh = logDtMid;
+        tLow = tMid;
       }
     }
 
-    // Return best estimate
-    const dt = Math.pow(10, (logDtLow + logDtHigh) / 2);
-    const tCurrent = tEmit + dt;
-    const rObserver = nToRadius(this.cfg.nObserver);
-    return tCurrent * Math.sqrt(1 - 1 / rObserver);
+    const dtCoordinate = tHigh - tEmit;
+
+    // Convert coordinate time delta to observer proper time delta
+    return dtCoordinate * Math.sqrt(1 - 1 / rObserver);
+  }
+
+  // Legacy method for backwards compatibility
+  getPhotonIntersectTau(tauEmit: number): number {
+    const delta = this.getPhotonIntersectDelta(tauEmit);
+    if (!isFinite(delta)) return Infinity;
+    return tauEmit + delta;
   }
 }
