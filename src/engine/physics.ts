@@ -1,6 +1,12 @@
 /**
- * Simplified physics for black hole visualization.
- * Uses n (log-distance from horizon) as primary spatial variable.
+ * Optimized Schwarzschild physics for real-time black hole visualization.
+ * Uses n = -log₁₀((r - rₛ)/rₛ) to spatially resolve the exponential
+ * metric stretch near the horizon without numerical singularities.
+ *
+ * Method: Exact GR scaling laws + asymptotic approximations of geodesics.
+ * Provides correct qualitative behavior (time dilation, photon delays,
+ * horizon crossing) with O(1) per-frame cost, sacrificing full ODE
+ * integration accuracy for visualization fidelity and performance.
  */
 
 // ============ COORDINATE CONVERSION ============
