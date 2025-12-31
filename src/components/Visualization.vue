@@ -78,7 +78,7 @@ function drawBlackHole() {
   // Clear canvas
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  const radius = RS_PIXELS * zoom.value
+  const radius = RS_PIXELS * displayedZoom.value
   const centerY = canvas.height / 2
   const centerX = horizonEdgeX - radius  // Center moves left as zoom increases
 
