@@ -82,6 +82,22 @@ function drawBlackHole() {
   const centerY = canvas.height / 2
   const centerX = horizonEdgeX - radius  // Center moves left as zoom increases
 
+  // At extreme zoom, render as straight line (curvature is imperceptible)
+  if (displayedZoom.value >= 100000) {
+    // Draw straight vertical line at horizon edge
+    ctx.strokeStyle = 'rgba(107, 114, 128, 0.5)'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(horizonEdgeX, 0)
+    ctx.lineTo(horizonEdgeX, canvas.height)
+    ctx.stroke()
+
+    // Fill left side as black
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(0, 0, horizonEdgeX, canvas.height)
+    return
+  }
+
   // Calculate angles for visible arc based on canvas viewport
   // For the right semicircle (angles from -PI/2 to PI/2):
   // cos(angle) = (x - cx) / r
