@@ -36,11 +36,6 @@ function resetZoom() {
   zoom.value = 1
 }
 
-// Clamp helper function
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
-}
-
 // Draw the black hole as an arc on canvas
 function drawBlackHole() {
   const canvas = blackHoleCanvas.value
@@ -57,25 +52,37 @@ function drawBlackHole() {
   const centerX = horizonEdgeX - radius  // Center moves left as zoom increases
 
   // Calculate angles for visible arc based on canvas viewport
-  // The viewport x-range is [0, canvas.width]
-  // We want to find the angles at x=0 and x=canvas.width
-  // cos(angle) = (x - cx) / r, so angle = acos((x - cx) / r)
-  const leftAngle = Math.acos(clamp((0 - centerX) / radius, -1, 1))
-  const rightAngle = Math.acos(clamp((canvas.width - centerX) / radius, -1, 1))
+  // For the right semicircle (angles from -PI/2 to PI/2):
+  // cos(angle) = (x - cx) / r
 
-  // Clamp to the right semicircle (angles from -PI/2 to PI/2)
-  const startAngle = clamp(leftAngle, -Math.PI / 2, Math.PI / 2)
-  const endAngle = clamp(rightAngle, -Math.PI / 2, Math.PI / 2)
+  // Find the top and bottom angles based on viewport constraints
+  // The left edge (x=0) and right edge (x=canvasWidth) constrain what's visible
+  let startAngle = Math.PI / 2  // Top of semicircle (default)
+  let endAngle = -Math.PI / 2   // Bottom of semicircle (default)
+
+  // Left edge constraint
+  const cosAtLeft = (0 - centerX) / radius
+  if (cosAtLeft > -1 && cosAtLeft < 1) {
+    // Left edge cuts through the circle - constrain top angle
+    startAngle = Math.min(startAngle, Math.acos(cosAtLeft))
+    endAngle = Math.max(endAngle, -Math.acos(cosAtLeft))
+  }
+
+  // Right edge constraint
+  const cosAtRight = (canvas.width - centerX) / radius
+  if (cosAtRight > -1 && cosAtRight < 1) {
+    // Right edge cuts through the circle - constrain to smaller arc
+    startAngle = Math.min(startAngle, Math.acos(cosAtRight))
+    endAngle = Math.max(endAngle, -Math.acos(cosAtRight))
+  }
 
   // Draw filled arc (black hole interior)
   ctx.fillStyle = '#000000'
   ctx.beginPath()
-  // Start at the top point of the visible arc
+  // Start at the top point
   ctx.moveTo(centerX + radius * Math.cos(startAngle), centerY + radius * Math.sin(startAngle))
-  // Trace arc to the bottom point
-  ctx.arc(centerX, centerY, radius, startAngle, endAngle, false)
-  // Close by connecting back through the center (for full fill effect)
-  ctx.lineTo(centerX + radius * Math.cos(startAngle), centerY + radius * Math.sin(startAngle))
+  // Arc clockwise to the bottom point
+  ctx.arc(centerX, centerY, radius, startAngle, endAngle, true)
   ctx.closePath()
   ctx.fill()
 
@@ -83,7 +90,7 @@ function drawBlackHole() {
   ctx.strokeStyle = 'rgba(107, 114, 128, 0.5)'
   ctx.lineWidth = 2
   ctx.beginPath()
-  ctx.arc(centerX, centerY, radius, startAngle, endAngle, false)
+  ctx.arc(centerX, centerY, radius, startAngle, endAngle, true)
   ctx.stroke()
 
   // Add purple glow effect at the horizon edge
