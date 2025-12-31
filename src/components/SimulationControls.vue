@@ -17,8 +17,15 @@ const emit = defineEmits<{
 
 const isRunning = ref<boolean>(false)
 const selectedSpeed = ref<string>('1us')
-const stopOneTickBefore = ref<boolean>(false)
-const autoDownscale = ref<boolean>(false)
+const stopOneTickBefore = ref<boolean>(true)
+const autoDownscale = ref<boolean>(true)
+
+// When auto-downscale is enabled, stop-one-tick-before must also be enabled
+watch(autoDownscale, (enabled) => {
+  if (enabled) {
+    stopOneTickBefore.value = true
+  }
+})
 
 const TARGET_FPS = 30
 const FRAME_INTERVAL = 1000 / TARGET_FPS
@@ -502,7 +509,7 @@ onUnmounted(() => {
       <input
         v-model="stopOneTickBefore"
         type="checkbox"
-        :disabled="isRunning"
+        :disabled="isRunning || autoDownscale"
         class="w-3 h-3 bg-white/5 border border-white/10 rounded focus:outline-none focus:border-blue-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
       />
       <span>Stop 1 tick before horizon</span>
