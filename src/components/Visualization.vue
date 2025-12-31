@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { createUnits } from '../engine/units'
 
 const props = defineProps<{
@@ -13,6 +13,13 @@ const units = computed(() => createUnits(props.solarMass))
 
 // Schwarzschild radius in pixels (scale factor for visualization)
 const RS_PIXELS = 40  // Horizon radius in pixels
+
+// Canvas dimensions
+const canvasWidth = 2000
+const canvasHeight = 300
+
+// Canvas ref
+const blackHoleCanvas = ref<HTMLCanvasElement | null>(null)
 
 // Zoom state
 const zoom = ref<number>(1)
@@ -29,6 +36,77 @@ function resetZoom() {
   zoom.value = 1
 }
 
+// Clamp helper function
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
+}
+
+// Draw the black hole as an arc on canvas
+function drawBlackHole() {
+  const canvas = blackHoleCanvas.value
+  if (!canvas) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+  const radius = RS_PIXELS * zoom.value
+  const centerY = canvas.height / 2
+  const centerX = horizonEdgeX - radius  // Center moves left as zoom increases
+
+  // Calculate angles for visible arc based on canvas viewport
+  // The viewport x-range is [0, canvas.width]
+  // We want to find the angles at x=0 and x=canvas.width
+  // cos(angle) = (x - cx) / r, so angle = acos((x - cx) / r)
+  const leftAngle = Math.acos(clamp((0 - centerX) / radius, -1, 1))
+  const rightAngle = Math.acos(clamp((canvas.width - centerX) / radius, -1, 1))
+
+  // Clamp to the right semicircle (angles from -PI/2 to PI/2)
+  const startAngle = clamp(leftAngle, -Math.PI / 2, Math.PI / 2)
+  const endAngle = clamp(rightAngle, -Math.PI / 2, Math.PI / 2)
+
+  // Draw filled arc (black hole interior)
+  ctx.fillStyle = '#000000'
+  ctx.beginPath()
+  // Start at the top point of the visible arc
+  ctx.moveTo(centerX + radius * Math.cos(startAngle), centerY + radius * Math.sin(startAngle))
+  // Trace arc to the bottom point
+  ctx.arc(centerX, centerY, radius, startAngle, endAngle, false)
+  // Close by connecting back through the center (for full fill effect)
+  ctx.lineTo(centerX + radius * Math.cos(startAngle), centerY + radius * Math.sin(startAngle))
+  ctx.closePath()
+  ctx.fill()
+
+  // Draw border
+  ctx.strokeStyle = 'rgba(107, 114, 128, 0.5)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(centerX, centerY, radius, startAngle, endAngle, false)
+  ctx.stroke()
+
+  // Add purple glow effect at the horizon edge
+  const gradient = ctx.createRadialGradient(
+    horizonEdgeX, centerY, 0,
+    horizonEdgeX, centerY, 20
+  )
+  gradient.addColorStop(0, 'rgba(168, 85, 247, 0.1)')
+  gradient.addColorStop(1, 'rgba(168, 85, 247, 0)')
+  ctx.fillStyle = gradient
+  ctx.fillRect(horizonEdgeX - 20, centerY - 20, 40, 40)
+}
+
+// Redraw when zoom changes
+watch(zoom, () => {
+  drawBlackHole()
+})
+
+// Initial draw
+onMounted(() => {
+  drawBlackHole()
+})
+
 // Get distance from horizon in meters for a given n
 // n = -log10((r - rs) / rs) => distance to horizon = rs * 10^(-n)
 function getDistanceFromHorizonMeters(n: number): number {
@@ -38,12 +116,13 @@ function getDistanceFromHorizonMeters(n: number): number {
   return rs_meters * Math.pow(10, -n)
 }
 
+const horizonEdgeX = RS_PIXELS * 2  // Right edge of horizon (where distance is 0)
+
 // Calculate pixels per meter based on observer position and zoom
 // This ensures observer is visible and everything scales proportionally
 const pixelsPerMeter = computed(() => {
   const obsDistance = getDistanceFromHorizonMeters(props.nObserver)
   const obsScreenX = 800  // Observer at 800px from left edge at 1x zoom
-  const horizonEdgeX = RS_PIXELS * 2  // Right edge of horizon
   const baseScale = (obsScreenX - horizonEdgeX) / obsDistance
   return baseScale * zoom.value
 })
@@ -51,12 +130,8 @@ const pixelsPerMeter = computed(() => {
 // Calculate screen position for a given n
 function getScreenX(n: number): number {
   const distanceFromHorizon = getDistanceFromHorizonMeters(n)
-  const horizonEdgeX = RS_PIXELS * 2  // Right edge of horizon
   return horizonEdgeX + (distanceFromHorizon * pixelsPerMeter.value)
 }
-
-const horizonX = RS_PIXELS  // Center of black hole
-const horizonEdgeX = RS_PIXELS * 2  // Right edge of horizon (where distance is 0)
 const fallerX = computed(() => getScreenX(props.nCurrentFaller))
 const observerX = computed(() => getScreenX(props.nObserver))
 
@@ -91,20 +166,13 @@ function formatDistanceFromHorizon(n: number): string {
 
     <!-- Main visualization area -->
     <div class="relative flex items-center">
-      <!-- Black Hole / Event Horizon -->
-      <div
-        class="rounded-full bg-black shadow-lg shadow-black/50 border-2 border-gray-700 flex items-center justify-center relative"
-        :style="{
-          width: `${RS_PIXELS * 2}px`,
-          height: `${RS_PIXELS * 2}px`,
-          marginLeft: `${horizonX - RS_PIXELS}px`
-        }"
-      >
-        <!-- Horizon glow -->
-        <div class="absolute inset-0 rounded-full bg-purple-500/10 blur-md"></div>
-        <!-- Center marker -->
-        <div class="w-1 h-1 bg-gray-600 rounded-full"></div>
-      </div>
+      <!-- Black Hole Canvas (renders arc based on zoom) -->
+      <canvas
+        ref="blackHoleCanvas"
+        :width="canvasWidth"
+        :height="canvasHeight"
+        class="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none"
+      />
 
       <!-- Distance lines and labels -->
       <!-- Faller distance line -->
