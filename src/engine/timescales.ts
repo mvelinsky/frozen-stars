@@ -92,18 +92,18 @@ export const timeScales: TimeScale[] = [
 
   // Human life
   { exponent: 9, seconds: 1e9, label: "32 years", reference: "one generation" },
-  { exponent: 10, seconds: 1e10, label: "320 years", reference: "since Newton born" },
-  { exponent: 11, seconds: 1e11, label: "3,200 years", reference: "since Trojan War" },
+  { exponent: 10, seconds: 1e10, label: "320 years", reference: "Greenland shark lifespan" },
+  { exponent: 11, seconds: 1e11, label: "3,200 years", reference: "oldest bristlecone pine" },
 
   // History
-  { exponent: 12, seconds: 1e12, label: "32,000 years", reference: "oldest cave paintings" },
-  { exponent: 13, seconds: 1e13, label: "320,000 years", reference: "Homo sapiens emerge" },
-  { exponent: 14, seconds: 1e14, label: "3 million years", reference: "first stone tools" },
+  { exponent: 12, seconds: 1e12, label: "32,000 years", reference: "one precession cycle" },
+  { exponent: 13, seconds: 1e13, label: "320,000 years", reference: "three glacial cycles" },
+  { exponent: 14, seconds: 1e14, label: "3 million years", reference: "day gets 1 minute longer" },
 
   // Evolution
-  { exponent: 15, seconds: 1e15, label: "32 million years", reference: "first apes" },
-  { exponent: 16, seconds: 1e16, label: "320 million years", reference: "first reptiles" },
-  { exponent: 17, seconds: 1e17, label: "3 billion years", reference: "first life on Earth" },
+  { exponent: 15, seconds: 1e15, label: "32 million years", reference: "5km asteroid likely hits Earth" },
+  { exponent: 16, seconds: 1e16, label: "320 million years", reference: "new supercontinent forms" },
+  { exponent: 17, seconds: 1e17, label: "3 billion years", reference: "oceans boil away" },
 
   // Cosmological
   { exponent: 18, seconds: 1e18, label: "32 billion years", reference: "2× age of universe" },
