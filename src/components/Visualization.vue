@@ -421,10 +421,10 @@ function formatDistanceFromHorizon(n: number): string {
 <template>
   <div class="w-full h-[300px] flex items-center relative overflow-hidden pl-8 pr-8">
     <!-- Dimension Ruler -->
-    <div class="absolute top-4 right-12 flex flex-col items-end z-20">
+    <div class="absolute top-4 left-[200px] flex flex-col items-start z-20">
       <div class="flex items-center gap-2">
-        <span class="text-xs text-white/60 font-mono">{{ scaleRuler.label }}</span>
         <div class="h-[2px] bg-white/40" :style="{ width: `${scaleRuler.pixels}px` }"></div>
+        <span class="text-xs text-white/60 font-mono">{{ scaleRuler.label }}</span>
       </div>
       <span class="text-[12px] text-white/60">{{ scaleRuler.ref }}</span>
     </div>
