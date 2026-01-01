@@ -28,7 +28,7 @@ watch(autoDownscale, (enabled) => {
 })
 
 const TARGET_FPS = 30
-const FRAME_INTERVAL = 1000 / TARGET_FPS
+const FRAME_INTERVAL = 250 / TARGET_FPS
 
 // Logarithmic time coordinate (like the spatial n coordinate)
 // Maps [0, tauMax) to [0, infinity)
@@ -453,7 +453,7 @@ onUnmounted(() => {
       <div class="flex justify-between text-[10px] font-mono text-gray-600">
         <span>n_τ = 0</span>
         <span class="text-purple-400">n_τ = {{ currentNTau.toFixed(4) }}</span>
-        <span>n_τ → 20 (∞)</span>
+        <span>n_τ → 200 (∞)</span>
       </div>
     </div>
 
