@@ -113,27 +113,6 @@ function toggleInstructions() {
             <p v-else class="mt-3 text-sm">&nbsp;</p>
           </div>
         </div>
-
-        <!-- Photon Exchange Bar -->
-        <div class="px-8 py-4">
-          <h3 class="text-xs text-blue-300/60 mb-2 uppercase tracking-widest font-medium">
-            Photon Emission
-            <span class="normal-case tracking-normal text-gray-400 font-normal ml-2">— information exchange between observer and faller</span>
-          </h3>
-          <div class="flex items-baseline gap-8">
-            <div>
-              <span class="text-gray-400 text-sm mr-2">Time to intercept:</span>
-              <span class="font-mono text-xl text-blue-400">{{ isFinite(timeToIntercept) ? formatTime(timeToIntercept, 4) : '∞' }}</span>
-            </div>
-            <div>
-              <span class="text-gray-500 text-sm mr-2">Round-trip:</span>
-              <span class="font-mono text-gray-400">{{ isFinite(timeToReceiveResponse) ? formatTime(timeToReceiveResponse, 4) : '∞' }}</span>
-            </div>
-          </div>
-          <p class="text-gray-500 text-xs mt-2 max-w-2xl">
-            Time for light to travel from the observer to the faller. With a mirror on the faller, the flash would be visible after the "round-trip" duration. This confirms the faller remains causally connected to and aware of events in the observer's frame.
-          </p>
-        </div>
       </div>
 
       <!-- Main Visualization -->

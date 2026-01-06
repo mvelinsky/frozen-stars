@@ -1,0 +1,102 @@
+// BlackHoleEngine.ts
+
+import {
+  nToRadius,
+  tortoiseN,
+  GeodesicCalculator,
+  LN10,
+  RS
+} from "./physics";
+
+export interface Config {
+  nFaller: number;
+  nObserver: number;
+}
+
+export class BlackHoleEngine {
+  private calculator: GeodesicCalculator;
+  private obsTortoise: number;
+  private obsTimeDilation: number;
+
+  constructor(public cfg: Config) {
+    this.calculator = new GeodesicCalculator(cfg.nFaller);
+    this.obsTortoise = tortoiseN(cfg.nObserver);
+    this.obsTimeDilation = Math.sqrt(1 - RS / nToRadius(cfg.nObserver));
+  }
+
+  // Map user's "100%" progress to the Horizon
+  get tauMax() {
+    return this.calculator.tauHorizon;
+  }
+
+  // ============ HELPERS ============
+
+  tauToNTau(tau: number): number {
+    if (tau >= this.tauMax) return Infinity;
+    if (tau <= 0) return 0;
+    const fraction = 1 - tau / this.tauMax;
+    // Logarithmic distance to horizon
+    if (fraction <= 1e-308) return 308;
+    return -Math.log10(fraction);
+  }
+
+  nTauToTau(nTau: number): number {
+    if (nTau === Infinity || nTau > 308) return this.tauMax;
+    const fraction = Math.pow(10, -Math.max(0, nTau));
+    return this.tauMax * (1 - fraction);
+  }
+
+  // ============ STATE ============
+
+  getStateByNTau(nTau: number) {
+    // 1. Calculate fraction remaining (high precision)
+    const fraction = Math.pow(10, -nTau);
+
+    // 2. Solve Physics
+    const state = this.calculator.getStateFromHorizonFraction(fraction);
+
+    // 3. Calculate Observer Time
+    const tauObserver = !isFinite(state.t) ? Infinity : state.t * this.obsTimeDilation;
+
+    return {
+      object1: { n: state.n, r: state.r, tau: state.tau, nTau },
+      object2: { n: this.cfg.nObserver, r: nToRadius(this.cfg.nObserver), tau: tauObserver },
+      coordinateTime: state.t,
+      atHorizon: false // By definition of tauMax=Horizon, we never cross it
+    };
+  }
+
+  getState(tau: number) {
+    return this.getStateByNTau(this.tauToNTau(tau));
+  }
+
+  getVisualState(observerTau: number) {
+    const tReceive = observerTau / this.obsTimeDilation;
+    const targetVal = tReceive - this.obsTortoise;
+
+    // t - r* ~ 2n ln10 (Slope is t(n)-r*(n) ~ n ln10 - (-n ln10) = 2 n ln10)
+    let n = Math.max(0, tReceive / (2 * LN10));
+
+    for (let i = 0; i < 10; i++) {
+      const state = this.calculator.getStateFromN(n);
+      const rStar = tortoiseN(n);
+
+      const val = state.t - rStar;
+      const error = val - targetVal;
+
+      if (Math.abs(error) < 1e-5) break;
+      n -= error / (2 * LN10);
+    }
+
+    if (n < 0) n = 0;
+    const finalState = this.calculator.getStateFromN(n);
+
+    return {
+      faller: { ...finalState },
+      observer: { tau: observerTau },
+      coordinateTime: tReceive,
+      redshift: Math.pow(10, finalState.n / 2),
+      atHorizon: false
+    };
+  }
+}

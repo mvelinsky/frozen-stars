@@ -415,6 +415,17 @@ function skipToEnd() {
   emit('skipToEnd')
 }
 
+function skipToTau199() {
+  const tau199 = 1
+  const nTau199 = 199
+
+  // Only update if moving forward
+  if (nTau199 > currentNTau.value) {
+    currentNTau.value = nTau199
+    emitNTauUpdate(nTau199)
+  }
+}
+
 onUnmounted(() => {
   stop()
 })
@@ -487,6 +498,13 @@ onUnmounted(() => {
         class="flex-1 px-3 py-1.5 text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/30 transition-colors"
       >
         Stop
+      </button>
+      <button
+        @click="skipToTau199"
+        :disabled="isRunning"
+        class="flex-1 px-3 py-1.5 text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded hover:bg-orange-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        τ = 199
       </button>
       <button
         @click="skipToEnd"
