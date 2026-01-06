@@ -416,7 +416,6 @@ function skipToEnd() {
 }
 
 function skipToTau199() {
-  const tau199 = 1
   const nTau199 = 199
 
   // Only update if moving forward

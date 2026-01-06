@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { BlackHoleEngine } from './engine/BlackHoleEngine'
+import { BlackHoleEngine as DramaticEngine } from './engine/BlackHoleEngine'
+import { BlackHoleEngine as AdvancedEngine } from './engine/advanced/BlackHoleEngine'
 import { createUnits } from './engine/units'
 import { timeScales } from './engine/timescales'
 import Aside from './components/Aside.vue'
@@ -12,15 +13,19 @@ import Instructions from './components/Instructions.vue'
 const mass = ref<number>(10)
 const nFaller = ref<number>(0)
 const nObserver = ref<number>(-1)
+const physicsEngine = ref<'dramatic' | 'advanced'>('dramatic')
+
+// Engine instance - uses appropriate engine based on physicsEngine selection
+const engine = computed(() => {
+  const EngineClass = physicsEngine.value === 'dramatic' ? DramaticEngine : AdvancedEngine
+  return new EngineClass({
+    nFaller: nFaller.value,
+    nObserver: nObserver.value,
+  })
+})
 
 // Current simulation time in logarithmic form (n_tau)
 const currentNTau = ref<number>(0)
-
-// Engine instance
-const engine = ref<BlackHoleEngine>(new BlackHoleEngine({
-  nFaller: nFaller.value,
-  nObserver: nObserver.value,
-}))
 
 // Get units for time conversion
 const units = computed(() => createUnits(mass.value))
@@ -28,13 +33,8 @@ const units = computed(() => createUnits(mass.value))
 // Get current state from engine using logarithmic time
 const currentState = computed(() => engine.value.getStateByNTau(currentNTau.value))
 
-// Recreate engine when config changes
+// Reset currentNTau when nFaller or nObserver changes
 watch([nFaller, nObserver], () => {
-  engine.value = new BlackHoleEngine({
-    nFaller: nFaller.value,
-    nObserver: nObserver.value,
-  })
-  // Reset currentNTau when engine is recreated
   currentNTau.value = 0
 })
 
@@ -63,16 +63,6 @@ function getTimeScaleReference(tau: number): string {
 
 const observerTimeReference = computed(() => getTimeScaleReference(currentState.value.object2.tau))
 
-// Photon exchange timing - depends on current simulation state
-const timeToIntercept = computed(() => {
-  const state = engine.value.getStateByNTau(currentNTau.value)
-  const currentObserverTau = state.object2.tau
-  const delta = engine.value.getPhotonIntersectDelta(currentObserverTau)
-  return delta
-})
-
-const timeToReceiveResponse = computed(() => timeToIntercept.value * 2)
-
 // Show/hide instructions
 const showInstructions = ref(true)
 
@@ -89,6 +79,7 @@ function toggleInstructions() {
       v-model:n-faller="nFaller"
       v-model:n-observer="nObserver"
       v-model:current-n-tau="currentNTau"
+      v-model:physics-engine="physicsEngine"
     />
 
     <!-- Visualization Area -->
