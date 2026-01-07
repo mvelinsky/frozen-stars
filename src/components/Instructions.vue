@@ -1,7 +1,24 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import katex from 'katex'
 
-const activeTab = ref<'main' | 'simulation' | 'faq'>('main')
+const activeTab = ref<'main' | 'simulation' | 'physics' | 'faq'>('main')
+
+defineProps<{ expanded: boolean; physicsEngine: 'dramatic' | 'advanced' }>()
+defineEmits<{ toggle: [] }>()
+
+// Helper to render LaTeX with KaTeX
+function renderLatex(latex: string): string {
+  try {
+    return katex.renderToString(latex, {
+      displayMode: false,
+      throwOnError: false,
+      trust: true,
+    })
+  } catch (e) {
+    return latex
+  }
+}
 
 // FAQ data
 const faqItems = [
@@ -13,9 +30,6 @@ const faqItems = [
   { q: 'Why does standard physics claim black holes exist?', a: 'Most physicists treat the Kruskal extension as physically real, not just mathematically valid. This is a philosophical choice: trust the complete mathematical solution over operational verifiability. Both positions use the same GR equations; they disagree on what "exists" means for regions requiring infinite coordinate time to verify.' },
   { q: 'What would prove horizons are real?', a: 'Detecting distinctive signatures impossible for frozen stars: gravitational wave echoes from a surface (absent in true horizons), or quantum gravity effects that allow finite-time crossing. Neither has been observed. Until then, "frozen star" and "true black hole" remain observationally equivalent.' }
 ]
-
-defineProps<{ expanded: boolean }>()
-defineEmits<{ toggle: [] }>()
 </script>
 
 <template>
@@ -44,6 +58,17 @@ defineEmits<{ toggle: [] }>()
           ]"
         >
           How to Use
+        </button>
+        <button
+          @click.stop="expanded ? (activeTab = 'physics') : $emit('toggle')"
+          :class="[
+            'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+            activeTab === 'physics'
+              ? 'border-blue-400 text-blue-400'
+              : 'border-transparent text-gray-400 hover:text-gray-300'
+          ]"
+        >
+          Physics Engine
         </button>
         <button
           @click.stop="expanded ? (activeTab = 'faq') : $emit('toggle')"
@@ -187,6 +212,138 @@ defineEmits<{ toggle: [] }>()
                 The <span class="text-blue-300 font-medium">stop point</span> is calculated as exactly 1 tick of proper time before the horizon: n_τ = log₁₀(τ_max / τ_per_tick). This ensures you can always continue the journey by switching to a smaller timescale.
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Physics Engine Tab -->
+      <div v-else-if="activeTab === 'physics'" class="max-w-3xl space-y-6 overflow-x-hidden">
+        <h2 class="text-lg font-semibold text-blue-300 mb-4">Physics Engine: {{ physicsEngine === 'dramatic' ? 'Dramatic' : 'Advanced' }}</h2>
+
+        <div v-if="physicsEngine === 'dramatic'" class="space-y-6">
+          <p class="text-gray-300 leading-relaxed">
+            The <span class="text-blue-300 font-medium">Dramatic engine</span> uses simplified approximations designed for real-time visualization. It captures the correct qualitative behavior of Schwarzschild geodesics while prioritizing visualisation experience over exact numerical accuracy.
+          </p>
+
+          <div>
+            <h3 class="text-sm font-semibold text-blue-200 mb-3">Key Equations</h3>
+            <div class="space-y-4">
+              <div class="bg-white/5 p-4 rounded">
+                <p class="text-blue-300 text-sm font-medium mb-2">Logarithmic Coordinate</p>
+                <div class="katex text-gray-300 text-sm" v-html="renderLatex('n = -\\log_{10}\\left(\\frac{r - r_s}{r_s}\\right)')"></div>
+                <p class="text-gray-400 text-xs mt-2">Maps infinite time dilation to a finite coordinate range</p>
+              </div>
+
+              <div class="bg-white/5 p-4 rounded">
+                <p class="text-blue-300 text-sm font-medium mb-2">Infall Trajectory</p>
+                <div class="katex text-gray-300 text-sm" v-html="renderLatex('n(\\tau) = n_0 - \\log_{10}\\left(1 - \\frac{\\tau}{\\tau_{max}}\\right)')"></div>
+                <p class="text-gray-400 text-xs mt-2">Simplified form showing logarithmic approach to horizon</p>
+              </div>
+
+              <div class="bg-white/5 p-4 rounded">
+                <p class="text-blue-300 text-sm font-medium mb-2">Coordinate Time</p>
+                <div class="katex text-gray-300 text-sm" v-html="renderLatex('t(n) = 10^n - 10^{n_0}')"></div>
+                <p class="text-gray-400 text-xs mt-2">Diverges exponentially as n → ∞ (object approaches horizon)</p>
+              </div>
+
+              <div class="bg-white/5 p-4 rounded">
+                <p class="text-blue-300 text-sm font-medium mb-2">Stationary Observer Time</p>
+                <div class="katex text-gray-300 text-sm" v-html="renderLatex('\\tau_{obs} = t \\sqrt{1 - \\frac{r_s}{r}}')"></div>
+                <p class="text-gray-400 text-xs mt-2">Gravitational time dilation for stationary observers</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold text-blue-200 mb-3">Trade-offs</h3>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="bg-green-500/10 border border-green-500/30 p-3 rounded">
+                <span class="text-green-300 font-medium">Visually dramatic</span>
+                <p class="text-gray-400 text-xs mt-1">Shows extreme observer time dilation at reasonable distances from horizon</p>
+              </div>
+              <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded">
+                <span class="text-amber-300 font-medium">Approximate</span>
+                <p class="text-gray-400 text-xs mt-1">Qualitatively correct but numerically simplified</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-blue-500/10 border border-blue-500/30 p-4 rounded">
+            <p class="text-blue-300 text-sm font-medium mb-2">Best For</p>
+            <p class="text-gray-400 text-sm">Educational demonstrations, real-time exploration, and understanding the qualitative behavior of black hole physics.</p>
+          </div>
+        </div>
+
+        <div v-else class="space-y-6">
+          <p class="text-gray-300 leading-relaxed">
+            The <span class="text-purple-300 font-medium">Advanced engine</span> implements exact Schwarzschild geodesics using proper General Relativity solutions. It provides numerically accurate results derived from the full analytic solution.
+          </p>
+
+          <div>
+            <h3 class="text-sm font-semibold text-purple-200 mb-3">Key Equations</h3>
+            <div class="space-y-4">
+              <div class="bg-white/5 p-4 rounded">
+                <p class="text-purple-300 text-sm font-medium mb-2">Cycloid Parameterization</p>
+                <div class="katex text-gray-300 text-sm" v-html="renderLatex('r(\\eta) = \\frac{R}{2}(1 + \\cos \\eta)')"></div>
+                <div class="katex text-gray-300 text-sm mt-2" v-html="renderLatex('\\tau(\\eta) = \\frac{\\tau_s}{\\pi}(\\eta + \\sin \\eta), \\quad \\tau_s = \\pi\\sqrt{\\frac{R^3}{4}}')"></div>
+                <p class="text-gray-400 text-xs mt-2">Exact solution for radial infall from rest at r = R</p>
+              </div>
+
+              <div class="bg-white/5 p-4 rounded">
+                <p class="text-purple-300 text-sm font-medium mb-2">Coordinate Time (Analytic)</p>
+                <div class="katex text-gray-300 text-sm" v-html="renderLatex('t(\\eta) = E\\left[\\left(\\frac{R}{2} + \\sqrt{\\frac{R^2}{4} - 1}\\right)\\eta + \\frac{R}{2}\\sqrt{\\frac{R^2}{4} - 1}\\sin \\eta + \\ln\\left|\\tan\\frac{\\eta}{2}\\right|\\right]')"></div>
+                <p class="text-gray-400 text-xs mt-2">Full analytic solution with logarithmic divergence at horizon</p>
+              </div>
+
+              <div class="bg-white/5 p-4 rounded">
+                <p class="text-purple-300 text-sm font-medium mb-2">Horizon Crossing (Linearized)</p>
+                <div class="katex text-gray-300 text-sm" v-html="renderLatex('r - r_s \\approx E(\\tau_h - \\tau), \\quad \\text{for } \\tau \\text{ near } \\tau_h')"></div>
+                <p class="text-gray-400 text-xs mt-2">Linear approximation valid within 10⁻⁹ of horizon crossing</p>
+              </div>
+
+              <div class="bg-white/5 p-4 rounded">
+                <p class="text-purple-300 text-sm font-medium mb-2">Arbitrary Precision Extrapolation</p>
+                <div class="katex text-gray-300 text-sm" v-html="renderLatex('t(n) \\approx t_{anchor} + \\ln(10) \\cdot (n - n_{anchor}), \\quad n \\gg 1')"></div>
+                <p class="text-gray-400 text-xs mt-2">Asymptotic form enables n = 10⁵⁰+ precision</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold text-purple-200 mb-3">Technical Features</h3>
+            <div class="space-y-2 text-sm">
+              <div class="bg-white/5 p-3 rounded">
+                <span class="text-purple-300 font-medium">Newton-Raphson Solver</span>
+                <p class="text-gray-400 text-xs mt-1">Inverts η(τ) numerically for exact state determination</p>
+              </div>
+              <div class="bg-white/5 p-3 rounded">
+                <span class="text-purple-300 font-medium">Dual-Strategy Solver</span>
+                <p class="text-gray-400 text-xs mt-1">Uses exact geodesics for n < 5, asymptotic extrapolation for n ≥ 5</p>
+              </div>
+              <div class="bg-white/5 p-3 rounded">
+                <span class="text-purple-300 font-medium">Float-Precision Handling</span>
+                <p class="text-gray-400 text-xs mt-1">Clamps at n = 308 (IEEE 754 limit) while continuing analytic evolution</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold text-purple-200 mb-3">Trade-offs</h3>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="bg-green-500/10 border border-green-500/30 p-3 rounded">
+                <span class="text-green-300 font-medium">Numerically exact</span>
+                <p class="text-gray-400 text-xs mt-1">Full Schwarzschild geodesic solutions, research-grade accuracy</p>
+              </div>
+              <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded">
+                <span class="text-amber-300 font-medium">Slow to reach extreme n</span>
+                <p class="text-gray-400 text-xs mt-1">Takes impractically long to get to interesting regimes (n > 2000)</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-purple-500/10 border border-purple-500/30 p-4 rounded">
+            <p class="text-purple-300 text-sm font-medium mb-2">Best For</p>
+            <p class="text-gray-400 text-sm">Research-grade accuracy, validating physics results, and exploring extreme near-horizon regimes where approximations break down.</p>
           </div>
         </div>
       </div>

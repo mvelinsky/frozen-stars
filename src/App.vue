@@ -118,7 +118,7 @@ function toggleInstructions() {
 
       <!-- Instructions Section - header always visible, content collapsible -->
       <div class="flex flex-col border-t border-gray-700/30 min-h-0" :class="showInstructions ? 'flex-1' : 'flex-none'">
-        <Instructions :expanded="showInstructions" @toggle="toggleInstructions" />
+        <Instructions :expanded="showInstructions" :physics-engine="physicsEngine" @toggle="toggleInstructions" />
       </div>
     </div>
   </div>

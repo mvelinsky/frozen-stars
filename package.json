@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
+    "@types/katex": "^0.16.7",
+    "katex": "^0.16.27",
     "tailwindcss": "^4.1.18",
     "vue": "^3.4.0"
   },
