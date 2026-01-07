@@ -416,7 +416,7 @@ function skipToEnd() {
 }
 
 function skipToTau199() {
-  const nTau199 = 199
+  const nTau199 = 1999
 
   // Only update if moving forward
   if (nTau199 > currentNTau.value) {

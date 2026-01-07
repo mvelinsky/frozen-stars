@@ -1,25 +1,34 @@
+// physics.ts
+
 export const RS = 1.0;
 export const LN10 = Math.LN10;
 
 /**
  * Robust radius conversion.
- * Handles the edge case where r snaps to RS due to float precision.
+ * We clamp this at 300 because standard math cannot represent
+ * 1 + 10^-301. It just becomes 1.
  */
-export function radiusToN(r: number): number {
-  if (r <= RS) return Infinity;
-  // Calculate relative difference directly
-  const diff = (r - RS) / RS;
-  if (diff === 0) return 308; // Max float precision boundary (~10^-308)
-  return -Math.log10(diff);
-}
-
 export function nToRadius(n: number): number {
-  if (n > 308) return RS;
+  if (n > 300) return RS;
   return RS * (1 + Math.pow(10, -n));
 }
 
+export function radiusToN(r: number): number {
+  if (r <= RS) return Infinity;
+  const diff = (r - RS) / RS;
+  if (diff === 0) return 308;
+  return -Math.log10(diff);
+}
+
+/**
+ * Tortoise Coordinate
+ * For huge N, r is effectively 1.0, so we just use the linear term.
+ */
 export function tortoiseN(n: number): number {
+  // If n is huge, r is 1.0. 
+  // r* approx 1 - n * ln10
   if (n > 100) return RS - n * LN10;
+
   const r = nToRadius(n);
   return r + Math.log(r - RS);
 }
@@ -46,44 +55,47 @@ export class GeodesicCalculator {
     this.R = nToRadius(nStart);
     this.E = Math.sqrt(1 - RS / this.R);
 
-    // 1. Horizon Geometry
     const cosEtaH = (2 * RS) / this.R - 1;
     this.etaHorizon = Math.acos(cosEtaH);
     this.tauSingularity = Math.PI * Math.sqrt(Math.pow(this.R, 3) / 4);
     this.tauHorizon = this.tauFromEta(this.etaHorizon);
 
-    // 2. Precompute anchor for t-extrapolation
     this.tAnchor = this.computeAnalyticT(this.etaFromN(this.nAnchor));
   }
 
   // --- Main Solvers ---
 
   /**
-   * Calculates state based on the fraction of the fall remaining.
-   * fraction = 1.0 (Start) -> 0.0 (Horizon)
+   * Calculates state based on fraction of fall remaining (10^-nTau).
+   * Able to handle fractions like 10^-10^50.
    */
   getStateFromHorizonFraction(fractionRemaining: number): FallerState {
-    // If we are extremely close (fraction < 10^-9), use linearized physics
+    // If fraction is 0 (underflowed), we treat it as "Deep in the Freeze"
+    // We can't recover n from 0, so the engine must pass n in separately if it's that large.
+    // However, usually we drive this by 'n', see getStateFromN.
+
     if (fractionRemaining < 1e-9) {
-      // Linear approximation near horizon:
-      // r - 1 approx E * (tauH - tau)
+      // Linearized Geodesic near horizon: 
+      // r - 1 = E * dTau
       const dTau = this.tauHorizon * fractionRemaining;
 
       const rMinus1 = this.E * dTau;
-      const n = -Math.log10(rMinus1);
+      const n = -Math.log10(rMinus1); // This might return Infinity if rMinus1 is 0
 
-      // Calculate t using purely logarithmic growth
-      const t = this.extrapolateT(n);
+      const t = this.extrapolateT(n); // If n is Infinity, t is Infinity
       const tau = this.tauHorizon - dTau;
 
       return { r: 1.0 + rMinus1, n, t, tau };
     }
 
-    // Standard Cycloid Solver
     const tau = this.tauHorizon * (1 - fractionRemaining);
     return this.computeExactStateAtTau(tau);
   }
 
+  /**
+   * The "God Mode" Solver.
+   * Can handle n = 10^50.
+   */
   getStateFromN(n: number): FallerState {
     if (n < this.nAnchor) {
       const r = nToRadius(n);
@@ -92,9 +104,19 @@ export class GeodesicCalculator {
       const tau = this.tauFromEta(eta);
       return {r, n, t, tau};
     }
+
+    // UNBOUNDED EXTRAPOLATION
     const t = this.extrapolateT(n);
+
+    // Calculate tau (Distance from horizon)
+    // dTau = 10^-n / E
+    // If n > 308, 10^-n becomes 0. That's fine, tau becomes exactly tauHorizon.
     const dTau = Math.pow(10, -n) / this.E;
-    return { r: 1, n, t, tau: this.tauHorizon - dTau };
+
+    // Radius will clamp to 1.0, but n and t keep growing
+    const r = nToRadius(n);
+
+    return { r, n, t, tau: this.tauHorizon - dTau };
   }
 
   // --- Physics Internals ---
@@ -103,7 +125,6 @@ export class GeodesicCalculator {
     const C = this.tauSingularity / Math.PI;
     let eta = (tau / this.tauSingularity) * Math.PI;
 
-    // Robust Newton Solver for Cycloid
     for(let i=0; i<8; i++) {
       const f = C * (eta + Math.sin(eta)) - tau;
       const df = C * (1 + Math.cos(eta));
@@ -113,8 +134,6 @@ export class GeodesicCalculator {
     const r = (this.R/2)*(1+Math.cos(eta));
     const n = radiusToN(r);
 
-    // Switch to Extrapolation if n is high to preserve continuity
-    // (Analytic formula is unstable for high n due to tan(eta/2))
     let t: number;
     if (n > this.nAnchor) {
       t = this.extrapolateT(n);
@@ -126,33 +145,22 @@ export class GeodesicCalculator {
   }
 
   /**
-   * Extrapolates Coordinate Time t for high N.
-   * Formula: t ~ n * ln(10)
-   * The coefficient is 1.0 (Schwarzschild metric), not 2.0.
+   * Extrapolates Coordinate Time t for ARBITRARY N.
+   * We REMOVED the clamp. n can be 10^40.
    */
   private extrapolateT(n: number): number {
-    if (n > 308) n = 308; // Clamp to double precision
     const slope = 1.0 * LN10;
     return this.tAnchor + slope * (n - this.nAnchor);
   }
 
-  /**
-   * Analytic solution for Schwarzschild T.
-   * t = E * [ ...linear terms... + 1.0 * ln(r-1) ]
-   */
   private computeAnalyticT(eta: number): number {
     const sqrtR = Math.sqrt(this.R);
     const term1 = (this.R/2 + 1)*sqrtR*eta + (this.R/2)*sqrtR*Math.sin(eta);
-
     const tanHalf = Math.tan(eta/2);
     const sqrtRm1 = Math.sqrt(this.R - 1);
     const num = sqrtRm1 + tanHalf;
     const den = sqrtRm1 - tanHalf;
-
-    // Fallback if den approaches 0 (Horizon)
     if (Math.abs(den) < 1e-12) return this.extrapolateT(12);
-
-    // FIX: The coefficient here is 1.0, derived from integral(dr / (1-1/r))
     const termLog = 1.0 * Math.log(Math.abs(num/den));
     return this.E * (term1 + termLog);
   }
